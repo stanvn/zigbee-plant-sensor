@@ -1,2 +1,0 @@
-osource "/home/stan/projects/plant_sensor/boards/shields/*/Kconfig.defconfig"
-osource "/home/stan/ncs/v2.0.0/nrf/boards/shields/*/Kconfig.defconfig"
