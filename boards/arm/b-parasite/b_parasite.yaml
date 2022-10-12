@@ -1,0 +1,17 @@
+identifier: b_parasite
+name: b-parasite
+type: mcu
+arch: arm
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - adc
+  - ble
+  - gpio
+  - ieee802154
+  - watchdog
+  - counter
+  - feather_serial
+  - feather_i2c

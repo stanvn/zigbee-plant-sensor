@@ -1,0 +1,41 @@
+# Available runners configured by board.cmake.
+runners:
+- nrfjprog
+- jlink
+- pyocd
+- blackmagicprobe
+
+# Default flash runner if --runner is not given.
+flash-runner: nrfjprog
+
+# Default debug runner if --runner is not given.
+debug-runner: jlink
+
+# Common runner configuration values.
+config:
+  board_dir: /home/stan/projects/plant_sensor/boards/arm/b-parasite
+  # Build outputs:
+  elf_file: zephyr.elf
+  hex_file: zephyr.hex
+  bin_file: zephyr.bin
+  # Host tools:
+  gdb: /home/stan/ncs/toolchains/v2.0.0/opt/zephyr-sdk/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb
+  openocd: /usr/bin/openocd
+  openocd_search:
+    - /home/stan/ncs/toolchains/v2.0.0/opt/zephyr-sdk/sysroots/x86_64-pokysdk-linux/usr/share/openocd/scripts
+
+# Runner specific arguments
+args:
+  nrfjprog:
+    []
+
+  jlink:
+    - --dt-flash=y
+    - --device=nrf52
+    - --speed=4000
+  pyocd:
+    - --dt-flash=y
+    - --target=nrf52840
+    - --frequency=4000000
+  blackmagicprobe:
+    - --gdb-serial=/dev/ttyBmpGdb
