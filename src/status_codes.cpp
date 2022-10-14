@@ -141,6 +141,6 @@ void check_error(status_code_t code, const char* msg){
   char text[STATUS_CODE_MAX_TEXT_LEN];
   if(code != STATUS_SUCCESS){
     get_status_code_text(code, text);
-    LOG_ERR("%s (Error: %s)", log_strdup(msg), log_strdup(text));
+    LOG_ERR("%s (Error: %s)", msg, text);
   }
 }

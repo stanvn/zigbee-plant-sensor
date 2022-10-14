@@ -135,7 +135,7 @@ static int divider_setup(void)
 #endif /* CONFIG_ADC_var */
 
 	rc = adc_channel_setup(ddp->adc, accp);
-	LOG_INF("Setup AIN%u got %d", iocp->channel, rc);
+	LOG_DBG("Setup AIN%u got %d", iocp->channel, rc);
 
 	return rc;
 }
@@ -147,7 +147,7 @@ static int battery_setup(const struct device *arg)
 	int rc = divider_setup();
 
 	battery_ok = (rc == 0);
-	LOG_INF("Battery setup: %d %d", rc, battery_ok);
+	LOG_DBG("Battery setup: %d %d", rc, battery_ok);
 	return rc;
 }
 
@@ -190,11 +190,11 @@ int battery_sample(void)
 			if (dcp->output_ohm != 0) {
 				rc = val * (uint64_t)dcp->full_ohm
 					/ dcp->output_ohm;
-				LOG_INF("raw %u ~ %u mV => %d mV\n",
+				LOG_DBG("raw %u ~ %u mV => %d mV\n",
 					ddp->raw, val, rc);
 			} else {
 				rc = val;
-				LOG_INF("raw %u ~ %u mV\n", ddp->raw, val);
+				LOG_DBG("raw %u ~ %u mV\n", ddp->raw, val);
 			}
 		}
 	}
