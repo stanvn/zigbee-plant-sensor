@@ -8,13 +8,16 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 
 project(plant_sensor_app)
 
-include_directories(include)
-
 target_sources(app PRIVATE 
-main.cpp
+src/main.cpp
+src/zb_zcl_soil_moisture.c
 src/buildin-led.cpp
 src/status_codes.cpp
 src/battery.cpp
 src/adc.cpp
 src/moisture_sensor.cpp
+src/light_sensor.cpp
+src/zigbee.cpp
 )
+
+include_directories(include)

@@ -18,6 +18,7 @@ adc_c::adc_c(uint16_t channel){
 		.buffer = &m_buf,
 		/* buffer size in bytes, not number of samples */
 		.buffer_size = sizeof(m_buf),
+    .calibrate = true
 	};
   m_adc_spec = m_adc_channels[channel];
 }

@@ -1,0 +1,258 @@
+/*
+ * Copyright (c) 2012-2014 Wind River Systems, Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr.h>
+#include <inttypes.h>
+#include <stddef.h>
+#include <stdint.h>
+
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/adc.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+#include <zephyr/sys/printk.h>
+#include <zephyr/sys/util.h>
+#include <zephyr/drivers/pwm.h>
+#include <drivers/gpio.h>
+#include <ram_pwrdn.h>
+
+#include <sys/printk.h>
+#include "logging/log.h"
+#include "buildin-led.hpp"
+#include "battery.hpp"
+#include "status_codes.hpp"
+#include "adc.hpp"
+#include "moisture_sensor.hpp"
+#include "light_sensor.hpp"
+#include "zigbee.hpp"
+
+extern "C" {
+#include <addons/zcl/zb_zcl_temp_measurement_addons.h>
+#include "zb_plant_sensor.h"
+#include "zb_zcl_soil_moisture.h"
+}
+
+#define UPDATE_PERIOD_MS 180000
+//#define UPDATE_PERIOD_MS 10000
+
+
+LOG_MODULE_REGISTER(app, CONFIG_LOG_DEFAULT_LEVEL);
+
+#define SHTC_NODE DT_ALIAS(temp_sensor)
+#define CONFIG_SHTC3_DEV_NAME DT_LABEL(SHTC3)
+
+
+static const struct pwm_dt_spec moisture_pwm = PWM_DT_SPEC_GET(DT_ALIAS(sensor_pwm));
+static const struct gpio_dt_spec discharge_pin = GPIO_DT_SPEC_GET(DT_ALIAS(fast_discharge_en), gpios);
+static const struct gpio_dt_spec photo_v_pin = GPIO_DT_SPEC_GET(DT_ALIAS(photo_v), gpios);
+
+adc_c moisture_adc(2);
+adc_c light_sensor_adc(1);
+moisture_sensor_c moisture_sensor(&moisture_adc, &moisture_pwm, &discharge_pin);
+light_sensor_c light_sensor(&light_sensor_adc, &photo_v_pin);
+
+const struct device* shtc3;
+
+static status_code_t init_shtc3_device(void){
+  shtc3 = DEVICE_DT_GET(SHTC_NODE);
+  if(shtc3 == NULL){
+    /* No such node, or the node does not have status "okay". */
+    printk("\nError: no device found.\n");
+    return STATUS_ERROR_DEVICE_NOT_FOUND;
+  }
+  if(!device_is_ready(shtc3)){
+    printk("\nError: Device \"%s\" is not ready; "
+        "check the driver initialization logs for errors.\n",
+        shtc3->name);
+    return STATUS_ERROR_DEVICE_NOT_READY;
+  }
+  LOG_INF("Found device \"%s\", getting sensor data\n", shtc3->name);
+  return STATUS_SUCCESS;
+}
+
+status_code_t update_temperature(){
+  struct sensor_value temp;
+  int16_t temperature_attribute = 0;
+  double measured_temperature;
+
+  status_code_t st = sensor_channel_get(shtc3, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+  measured_temperature = sensor_value_to_double(&temp);
+  if(st == STATUS_SUCCESS){
+    temperature_attribute = (int16_t)
+      (measured_temperature *
+       ZCL_TEMPERATURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+    LOG_INF("Temp: %d", temperature_attribute);
+
+    zb_zcl_status_t status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+        (zb_uint8_t *)&temperature_attribute,
+        ZB_FALSE);
+
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
+
+  }
+  return -st;
+}
+
+status_code_t update_humidity(){
+  struct sensor_value hum;
+  int16_t humidity_attribute = 0;
+  double measured_humidity;
+
+  status_code_t st = sensor_channel_get(shtc3, SENSOR_CHAN_HUMIDITY, &hum);
+  measured_humidity = sensor_value_to_double(&hum);
+  if(st == STATUS_SUCCESS){
+    humidity_attribute = (int16_t)
+      (measured_humidity *
+       ZCL_HUMIDITY_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+    LOG_INF("Hum: %d.%06d\n", hum.val1, hum.val2);
+
+    zb_zcl_status_t status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
+        (zb_uint8_t *)&humidity_attribute,
+        ZB_FALSE);
+
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
+
+  }
+  return -st;
+}
+
+status_code_t update_soil_moisture(){
+  int8_t moisture_val = moisture_sensor.read();
+  if(moisture_val < 0){
+    LOG_ERR("Failed to read soil moisture");
+    return -moisture_val;
+  }
+  int16_t moisture_attribute = (int16_t)(moisture_val * ZCL_SOIL_MOISTURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+  LOG_INF("Soil moisture: %d\n", moisture_val);
+
+  zb_zcl_status_t status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_SOIL_MOISTURE_MEASUREMENT,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
+      (zb_uint8_t *)&moisture_attribute,
+      ZB_FALSE);
+  if (status) {
+    LOG_ERR("Failed to set ZCL attribute: %d", status);
+    return -status;
+  }
+  return STATUS_SUCCESS;
+}
+
+status_code_t update_light_sensor(){
+  uint16_t value = light_sensor.read();
+  if(value < 0){
+    LOG_ERR("Failed to read from light sensor");
+    return -value;
+  }
+  LOG_INF("Light: %d", value);
+  int16_t light_sensor_attribute = (int16_t)(value * ZCL_ILLUMIANCE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+
+  zb_zcl_status_t status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID,
+      (zb_uint8_t *)&light_sensor_attribute,
+      ZB_FALSE);
+
+
+  if (status) {
+    LOG_ERR("Failed to set ZCL attribute: %d", status);
+    return -status;
+  }
+  return STATUS_SUCCESS;
+}
+
+status_code_t update_battery_state(){
+  int battery_mv = battery_sample(); 
+  if(battery_mv < 0){
+    LOG_ERR("Failed to sample battery");
+    return -battery_mv;
+  }
+  uint8_t battery_attribute = (uint8_t)(battery_mv / ZCL_BATTERY_VOLTAGE_VALUE_DIVIDER);
+  zb_zcl_status_t status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_ID,
+      (zb_uint8_t *)&battery_attribute,
+      ZB_FALSE);
+
+  if (status) {
+    LOG_ERR("Failed to set ZCL attribute: %d", status);
+    return -status;
+  }
+
+  uint8_t alarm_mask = 0;
+  if(battery_mv < BATTERY_ALARM_MV)
+    alarm_mask |= 1;
+  if(battery_mv < BATTERY_THRESHOLD1_MV) 
+    alarm_mask |= 1 << 1;
+  if(battery_mv < BATTERY_THRESHOLD2_MV)
+    alarm_mask |= 1 << 2;
+  if(battery_mv < BATTERY_THRESHOLD3_MV)
+    alarm_mask |= 1 << 3;
+  LOG_DBG("Battery alarm mask: %b", alarm_mask);
+
+  status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_ALARM_MASK_ID,
+      (zb_uint8_t *)&alarm_mask,
+      ZB_FALSE);
+
+  if (status) {
+    LOG_ERR("Failed to set ZCL attribute: %d", status);
+    return -status;
+  }
+  return STATUS_SUCCESS;
+
+}
+
+int main(void)
+{
+  LOG_INF("Plant sensor application started!");
+  check_error(battery_measure_enable(true), "Failed to start battery measurement");
+  check_error(moisture_sensor.init(), "Failed to init moisture sensor");
+  check_error(init_shtc3_device(), "Failed to init temperature sensor");
+  check_error(light_sensor.init(), "Failed to init light sensor");
+
+  /* Power off unused sections of RAM to lower device power consumption. */
+  if (IS_ENABLED(CONFIG_RAM_POWER_DOWN_LIBRARY)) {
+    power_down_unused_ram();
+  }
+
+  zigbee_start();
+
+  while(true){
+    sensor_sample_fetch(shtc3);
+    update_temperature();
+    update_humidity();
+    update_soil_moisture();
+    update_light_sensor();
+    update_battery_state();
+    k_msleep(UPDATE_PERIOD_MS);
+  }
+
+  return 0;
+}

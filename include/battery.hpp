@@ -7,6 +7,11 @@
 #ifndef APPLICATION_BATTERY_H_
 #define APPLICATION_BATTERY_H_
 
+#define BATTERY_ALARM_MV      2200
+#define BATTERY_THRESHOLD1_MV 2400
+#define BATTERY_THRESHOLD2_MV 2600
+#define BATTERY_THRESHOLD3_MV 2800
+
 /** Enable or disable measurement of the battery voltage.
  *
  * @param enable true to enable, false to disable

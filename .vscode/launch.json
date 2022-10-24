@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "OpenOCD",
+            "device": "nrf52840",
+            "gdbPath": "arm-none-eabi-gdb",
+            "type": "cortex-debug",
+            "request": "launch",
+            "servertype": "openocd",                
+            "cwd": "${workspaceRoot}",
+            "executable": "build/zephyr/zephyr.elf",
+            "showDevDebugOutput": "raw",
+            "configFiles": [
+                "/usr/local/share/openocd/scripts/interface/stlink.cfg",
+                "/usr/local/share/openocd/scripts/target/nrf52.cfg"
+              ],
+            "runToEntryPoint": "main",
+            "postRestartCommands": [
+                "break main",
+                "continue"
+            ]
+        }
+    ]
+}

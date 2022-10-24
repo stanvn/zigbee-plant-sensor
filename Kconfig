@@ -1,0 +1,9 @@
+source "Kconfig.zephyr"
+
+config LOG_MOISTURE_SENSOR_LEVEL
+  int "Moisture sensor log level"
+  default 3
+
+config LOG_LIGHT_SENSOR_LEVEL
+  int "Light sensor log level"
+  default 3
