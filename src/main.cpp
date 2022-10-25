@@ -29,6 +29,7 @@
 #include "moisture_sensor.hpp"
 #include "light_sensor.hpp"
 #include "zigbee.hpp"
+#include "math.h"
 
 extern "C" {
 #include <addons/zcl/zb_zcl_temp_measurement_addons.h>
@@ -36,7 +37,7 @@ extern "C" {
 #include "zb_zcl_soil_moisture.h"
 }
 
-#define UPDATE_PERIOD_MS 180000
+#define UPDATE_PERIOD_MS 60000
 //#define UPDATE_PERIOD_MS 10000
 
 
@@ -164,7 +165,8 @@ status_code_t update_light_sensor(){
     return -value;
   }
   LOG_INF("Light: %d", value);
-  int16_t light_sensor_attribute = (int16_t)(value * ZCL_ILLUMIANCE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+  int16_t light_sensor_attribute = (int16_t)(10000.0 * log10(value));
+  LOG_DBG("Light attribute: %d", light_sensor_attribute);
 
   zb_zcl_status_t status = zb_zcl_set_attr_val(
       PLANT_SENSOR_ENDPOINT,

@@ -16,15 +16,13 @@ extern "C" {
 
 #define PLANT_SENSOR_ENDPOINT     0x01
 
-#define ZB_HUMIDITY_SENSOR_REPORT_ATTR_COUNT  2                                    /**< Number of attributes mandatory for reporting in the plant cluster. */
-
 #define ZB_DEVICE_VER_PLANT_SENSOR         1                                    /**< Light Sensor device version. */
 
-#define ZB_PLANT_SENSOR_IN_CLUSTER_NUM     7                                    /**< Number of the input (server) clusters in the light sensor device. */
+#define ZB_PLANT_SENSOR_IN_CLUSTER_NUM     8                                    /**< Number of the input (server) clusters in the light sensor device. */
 
 #define ZB_PLANT_SENSOR_OUT_CLUSTER_NUM    1
 
-#define ZB_PLANT_SENSOR_REPORT_ATTR_COUNT  7
+#define ZB_PLANT_SENSOR_REPORT_ATTR_COUNT  8
   /** @brief Declares simple descriptor for the "Device_name" device.
    *
    *  @param ep_name          Endpoint variable name.

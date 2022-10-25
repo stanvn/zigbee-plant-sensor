@@ -12,7 +12,7 @@
 
 
 
-#define PWM_PERIOD 512
+#define PWM_PERIOD_NS 3000
 
 LOG_MODULE_REGISTER(moisture_sensor, CONFIG_LOG_MOISTURE_SENSOR_LEVEL);
 
@@ -40,14 +40,12 @@ status_code_t moisture_sensor_c::init(){
 }
 
 int8_t moisture_sensor_c::read(){
-  gpio_pin_set_dt(m_discharge_pin, 0);
-  pwm_set_dt(m_pwm, PWM_PERIOD, PWM_PERIOD / 2U);
+  gpio_pin_set_dt(m_discharge_pin, 1);
+  pwm_set_dt(m_pwm, PWM_PERIOD_NS, PWM_PERIOD_NS / 2U);
   battery_measure_enable(true);
-  k_msleep(5);
+  k_msleep(10);
   int32_t adc_value = m_adc->read();
   pwm_set_dt(m_pwm, 0, 0);
-  gpio_pin_set_dt(m_discharge_pin, 1);
-  k_msleep(5);
   gpio_pin_set_dt(m_discharge_pin, 0);
   int32_t bat_mV = battery_sample();
   battery_measure_enable(false);
