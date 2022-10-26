@@ -42,4 +42,5 @@ build*
 *.swp
 tags
 .cache
+tags
 
