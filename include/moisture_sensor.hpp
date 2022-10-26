@@ -13,11 +13,11 @@
  * Where dry is the maximal expected sensor value when fully dry
  * and max is the minimal expected sensor value when fully wet
  */
-#define EQ_DRY_A 0.9353
-#define EQ_DRY_B -432.88
+#define EQ_DRY_A 0.9321
+#define EQ_DRY_B -449.87
 
-#define EQ_WET_A 0.3404
-#define EQ_WET_B -422.14
+#define EQ_WET_A 0.1298
+#define EQ_WET_B -203.09
 
 
 class moisture_sensor_c{
