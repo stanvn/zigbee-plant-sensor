@@ -37,7 +37,7 @@ extern "C" {
 #include "zb_zcl_soil_moisture.h"
 }
 
-#define UPDATE_PERIOD_MS 60000
+#define UPDATE_PERIOD_MS 120000
 //#define UPDATE_PERIOD_MS 10000
 
 
@@ -135,8 +135,8 @@ status_code_t update_humidity(){
   return -st;
 }
 
-status_code_t update_soil_moisture(){
-  int8_t moisture_val = moisture_sensor.read();
+status_code_t update_soil_moisture(int32_t battery_mv){
+  int8_t moisture_val = moisture_sensor.read(battery_mv);
   if(moisture_val < 0){
     LOG_ERR("Failed to read soil moisture");
     return -moisture_val;
@@ -184,8 +184,7 @@ status_code_t update_light_sensor(){
   return STATUS_SUCCESS;
 }
 
-status_code_t update_battery_state(){
-  int battery_mv = battery_sample(); 
+status_code_t update_battery_state(int32_t battery_mv){
   if(battery_mv < 0){
     LOG_ERR("Failed to sample battery");
     return -battery_mv;
@@ -207,7 +206,7 @@ status_code_t update_battery_state(){
   uint8_t alarm_mask = 0;
   if(battery_mv < BATTERY_ALARM_MV)
     alarm_mask |= 1;
-  if(battery_mv < BATTERY_THRESHOLD1_MV) 
+  if(battery_mv < BATTERY_THRESHOLD1_MV)
     alarm_mask |= 1 << 1;
   if(battery_mv < BATTERY_THRESHOLD2_MV)
     alarm_mask |= 1 << 2;
@@ -246,13 +245,18 @@ int main(void)
 
   zigbee_start();
 
+  int32_t battery_mv = 0;
+
   while(true){
+    battery_measure_enable(true);
+    battery_mv = battery_sample();
+    battery_measure_enable(false);
     sensor_sample_fetch(shtc3);
     update_temperature();
     update_humidity();
-    update_soil_moisture();
+    update_soil_moisture(battery_mv);
     update_light_sensor();
-    update_battery_state();
+    update_battery_state(battery_mv);
     k_msleep(UPDATE_PERIOD_MS);
   }
 

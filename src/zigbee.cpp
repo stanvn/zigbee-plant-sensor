@@ -12,6 +12,8 @@ extern "C" {
 
 #define LED0_NODE DT_ALIAS(led0)
 
+  const struct gpio_dt_spec led_spec =  GPIO_DT_SPEC_GET(LED0_NODE, gpios);
+  uint8_t identify_led_state = 0;
 
   LOG_MODULE_REGISTER(zigbee, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -78,7 +80,7 @@ extern "C" {
       &dev_ctx.illum_attrs.max_measure_value);
 
   ZB_ZCL_DECLARE_POWER_CONFIG_ATTRIB_LIST(
-      power_config_attr_list, 
+      power_config_attr_list,
       &dev_ctx.power_config_attr.battery_voltage,
       &dev_ctx.power_config_attr.battery_size,
       &dev_ctx.power_config_attr.battery_quantity,
@@ -106,8 +108,6 @@ extern "C" {
 
   ZBOSS_DECLARE_DEVICE_CTX_1_EP(app_sensor_ctx, plant_sensor_ep);
 
-  const struct gpio_dt_spec led_spec =  GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-  uint8_t identify_led_state = 0;
 
 
   /**@brief Zigbee stack event handler.
@@ -125,11 +125,18 @@ extern "C" {
     switch (sig) {
       case ZB_BDB_SIGNAL_DEVICE_REBOOT:
         /* fall-through */
-      case ZB_BDB_SIGNAL_STEERING:
-        if (status == RET_OK) {
+      // case ZB_BDB_SIGNAL_STEERING:
+      //   if (status == RET_OK) {
+      //   } else {
+      //   }
+      //   break;
+      case ZB_ZDO_SIGNAL_DEFAULT_START:
+        //  Device has started and joined the network.
+        if(status == RET_OK){
+          LOG_INF("Joined the network");
+          // Reduce the data polling to save power 
+          zb_zdo_pim_set_long_poll_interval(CONFIG_ZIGBEE_DATA_POLL_INTERVAL);
           gpio_pin_set_dt(&led_spec, 0);
-        } else {
-          gpio_pin_set_dt(&led_spec, 1);
         }
         break;
 
@@ -142,13 +149,13 @@ extern "C" {
         break;
 
       default:
+        ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
         break;
     }
 
     /* No application-specific behavior is required.
      * Call default signal handler.
      */
-    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 
     /* All callbacks should either reuse or free passed buffers.
      * If bufid == 0, the buffer is invalid (not passed).

@@ -24,7 +24,7 @@ class moisture_sensor_c{
   public:
     moisture_sensor_c(adc_c* adc, const struct pwm_dt_spec* pwm, const struct gpio_dt_spec* discharge_pin);
     status_code_t init();
-    int8_t read();
+    int8_t read(int32_t battery_mv);
 
   private:
     int8_t get_moisture_percentage(int32_t bat_mV, int32_t adc_reading);

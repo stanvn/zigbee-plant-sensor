@@ -7,3 +7,7 @@ config LOG_MOISTURE_SENSOR_LEVEL
 config LOG_LIGHT_SENSOR_LEVEL
   int "Light sensor log level"
   default 3
+
+config ZIGBEE_DATA_POLL_INTERVAL
+  int "Zigbee data poll interval in milliseconds"
+  default 5000

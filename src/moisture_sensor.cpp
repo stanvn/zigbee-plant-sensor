@@ -5,7 +5,6 @@
 #include <zephyr/drivers/adc.h>
 #include <zephyr/drivers/pwm.h>
 #include <math.h>
-#include "battery.hpp"
 #include "logging/log.h"
 #include "pm/device.h"
 #include "pm/pm.h"
@@ -39,21 +38,17 @@ status_code_t moisture_sensor_c::init(){
   return STATUS_SUCCESS;
 }
 
-int8_t moisture_sensor_c::read(){
+int8_t moisture_sensor_c::read(int32_t battery_mv){
   gpio_pin_set_dt(m_discharge_pin, 1);
   pwm_set_dt(m_pwm, PWM_PERIOD_NS, PWM_PERIOD_NS / 2U);
-  battery_measure_enable(true);
-  k_msleep(10);
+  k_msleep(2);
   int32_t adc_value = m_adc->read();
   pwm_set_dt(m_pwm, 0, 0);
   gpio_pin_set_dt(m_discharge_pin, 0);
-  int32_t bat_mV = battery_sample();
-  battery_measure_enable(false);
 
-  LOG_DBG("Battery value: %d mV", bat_mV);
   LOG_DBG("Sensor value: %d mV", adc_value); 
 
-  return get_moisture_percentage(bat_mV, adc_value);
+  return get_moisture_percentage(battery_mv, adc_value);
 }
 
 int8_t moisture_sensor_c::get_moisture_percentage(int32_t bat_mV, int32_t adc_reading){
