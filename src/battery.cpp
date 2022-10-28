@@ -79,6 +79,11 @@ static struct divider_data divider_data = {
 #endif
 };
 
+/**
+* @brief setup battery measurement with a voltage devider
+* @return 0 on success
+* @return < 0 with a negative error code
+**/
 static int divider_setup(void)
 {
 	const struct divider_config *cfg = &divider_config;
@@ -142,6 +147,12 @@ static int divider_setup(void)
 
 static bool battery_ok;
 
+/**
+* @brief Settup battery readout
+* @param arg not used
+* @return 0 on success
+* @return < 0 with a negative error message
+**/
 static int battery_setup(const struct device *arg)
 {
 	int rc = divider_setup();
@@ -153,6 +164,12 @@ static int battery_setup(const struct device *arg)
 
 SYS_INIT(battery_setup, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
+/**
+* @brief Enable battery measurement
+* @param enable true to enable and false to disable
+* @return 0 on success
+* @return < 0 with a negative error code
+**/
 int battery_measure_enable(bool enable)
 {
 	int rc = -ENOENT;
@@ -168,6 +185,11 @@ int battery_measure_enable(bool enable)
 	return rc;
 }
 
+/**
+* @brief Get a battery measurement sample
+* @return integer >= 0 with the battery measurement in milli volts 
+* @return integer < 0 with a negative error code
+**/
 int battery_sample(void)
 {
 	int rc = -ENOENT;
@@ -202,6 +224,12 @@ int battery_sample(void)
 	return rc;
 }
 
+/**
+* @brief calculate the battery percentage based on the battery discharge curve
+* @param batt_mV Battery level in millivolts
+* @param curve Pointer to the battery discharge curve struct
+* @return Positive integer with the battery level in percentage
+**/
 unsigned int battery_level_pptt(unsigned int batt_mV,
 				const struct battery_level_point *curve)
 {

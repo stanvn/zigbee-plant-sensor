@@ -22,7 +22,6 @@
 
 #include <sys/printk.h>
 #include "logging/log.h"
-#include "buildin-led.hpp"
 #include "battery.hpp"
 #include "status_codes.hpp"
 #include "adc.hpp"

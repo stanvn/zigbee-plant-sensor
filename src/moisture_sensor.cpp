@@ -20,6 +20,11 @@ moisture_sensor_c::moisture_sensor_c(adc_c* adc, const struct pwm_dt_spec* pwm, 
 {
 }
 
+/**
+* @brief initializes the soil moisture sensor
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t moisture_sensor_c::init(){
   status_code_t st = m_adc->init();
   if(st != STATUS_SUCCESS){
@@ -38,6 +43,12 @@ status_code_t moisture_sensor_c::init(){
   return STATUS_SUCCESS;
 }
 
+/**
+* @brief Get a readout from the soil moisture sensor
+* @param battery_mv battery level in millivolts
+* @return >= 0 with the readout value
+* @return < 0 with a negative error message
+**/
 int8_t moisture_sensor_c::read(int32_t battery_mv){
   gpio_pin_set_dt(m_discharge_pin, 1);
   pwm_set_dt(m_pwm, PWM_PERIOD_NS, PWM_PERIOD_NS / 2U);
@@ -51,6 +62,12 @@ int8_t moisture_sensor_c::read(int32_t battery_mv){
   return get_moisture_percentage(battery_mv, adc_value);
 }
 
+/**
+* @brief convert the raw sensor reading to percentages
+* @param bat_mv battery level in milli volts
+* @param adc_reading the raw sensor valu
+* @return soil moisture percentage
+**/
 int8_t moisture_sensor_c::get_moisture_percentage(int32_t bat_mV, int32_t adc_reading){
   float wet_value = EQ_WET_A * (float)bat_mV + EQ_WET_B;
   float dry_value = EQ_DRY_A * (float)bat_mV + EQ_DRY_B;

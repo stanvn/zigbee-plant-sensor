@@ -6,6 +6,9 @@
 #include <zephyr/sys/util.h>
 #include "status_codes.hpp"
 
+/**
+* @brief Read analog value with the ADC
+**/
 class adc_c{
   public:
     adc_c(uint16_t channel);

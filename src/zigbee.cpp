@@ -33,11 +33,13 @@ extern "C" {
   /* Zigbee device application context storage. */
   static struct zb_device_ctx dev_ctx;
 
+  // Create identify cluster attibute list
   ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(
       identify_attr_list,
       &dev_ctx.identify_attr.identify_time);
 
 
+  // Create Basic cluster attribute list
   ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
       basic_attr_list,
       &dev_ctx.basic_attr.zcl_version,
@@ -52,6 +54,7 @@ extern "C" {
       &dev_ctx.basic_attr.ph_env,
       dev_ctx.basic_attr.sw_ver);
 
+  // Create temperature measurement cluster attribure list
   ZB_ZCL_DECLARE_TEMP_MEASUREMENT_ATTRIB_LIST(
       temp_measurement_attr_list,
       &dev_ctx.temp_measure_attrs.measure_value,
@@ -59,6 +62,7 @@ extern "C" {
       &dev_ctx.temp_measure_attrs.max_measure_value,
       &dev_ctx.temp_measure_attrs.tolerance);
 
+  // Create humidity measurement cluster attribure list
   ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(
       humidity_measurement_attr_list,
       &dev_ctx.humidity_measurement_attrs.measure_value,
@@ -66,6 +70,7 @@ extern "C" {
       &dev_ctx.humidity_measurement_attrs.max_measure_value
       );
 
+  // Create soil moistuer measurement cluster attribure list
   ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(
       soil_moisture_measurement_attr_list,
       &dev_ctx.soil_moisture_measurement_attrs.measure_value,
@@ -73,12 +78,14 @@ extern "C" {
       &dev_ctx.soil_moisture_measurement_attrs.max_measure_value
       );
 
+  // Create illuminance measurement cluster attribure list
   ZB_ZCL_DECLARE_ILLUMINANCE_MEASUREMENT_ATTRIB_LIST(
       illum_measure_attr_list,
       &dev_ctx.illum_attrs.measure_value,
       &dev_ctx.illum_attrs.min_measure_value,
       &dev_ctx.illum_attrs.max_measure_value);
 
+  // Create power configuration cluster attribure list
   ZB_ZCL_DECLARE_POWER_CONFIG_ATTRIB_LIST(
       power_config_attr_list,
       &dev_ctx.power_config_attr.battery_voltage,
@@ -89,7 +96,7 @@ extern "C" {
       &dev_ctx.power_config_attr.battery_voltage_min_threshold
       );
 
-
+  // Declare the plant sensor endpoint cluster list
   ZB_DECLARE_PLANT_SENSOR_CLUSTER_LIST(
       plant_sensor_clusters,
       basic_attr_list,
@@ -101,17 +108,19 @@ extern "C" {
       power_config_attr_list
       );
 
+  // Declare the plant sensor endpoint
   ZB_ZCL_DECLARE_PLANT_SENSOR_EP(
       plant_sensor_ep,
       PLANT_SENSOR_ENDPOINT,
       plant_sensor_clusters);
 
+  // Attacht the app contect to the plant sensor endpoint
   ZBOSS_DECLARE_DEVICE_CTX_1_EP(app_sensor_ctx, plant_sensor_ep);
 
 
 
-  /**@brief Zigbee stack event handler.
-   *
+  /** 
+   * @brief Zigbee stack event handler.
    * @param[in]   bufid   Reference to the Zigbee stack buffer
    *                      used to pass signal.
    */
@@ -165,6 +174,9 @@ extern "C" {
     }
   }
 
+  /**
+  * @brief initialize all the cluster attributes with a default value.
+  **/
   static void app_clusters_attr_init(void)
   {
     /* Basic cluster attributes data */
@@ -204,40 +216,9 @@ extern "C" {
 
   }
 
-
-  /**@brief Function to toggle the identify LED
-   *
-   * @param  bufid  Unused parameter, required by ZBOSS scheduler API.
-   */
-  // static void toggle_identify_led(zb_bufid_t bufid)
-  // {
-  //   LOG_INF("TOGGLE");
-  //   gpio_pin_set_dt(&led_spec, identify_led_state);
-  //   identify_led_state = !identify_led_state;
-  //   ZB_SCHEDULE_APP_ALARM(toggle_identify_led, bufid, ZB_MILLISECONDS_TO_BEACON_INTERVAL(100));
-  // }
-
-  /**@brief Function to handle identify notification events on the first endpoint.
-   *
-   * @param  bufid  Unused parameter, required by ZBOSS scheduler API.
-   */
-  // static void identify_cb(zb_bufid_t bufid)
-  // {
-  //   zb_ret_t zb_err_code;
-  //   LOG_DBG("Identify");
-  //   if (bufid) {
-  //     /* Schedule a self-scheduling function that will toggle the LED */
-  //     ZB_SCHEDULE_APP_CALLBACK(toggle_identify_led, bufid);
-  //   } else {
-  //     /* Cancel the toggling function alarm and turn off LED */
-  //     zb_err_code = ZB_SCHEDULE_APP_ALARM_CANCEL(toggle_identify_led, ZB_ALARM_ANY_PARAM);
-  //     ZVUNUSED(zb_err_code);
-
-  //     gpio_pin_set_dt(&led_spec, 0);
-  //   }
-  // }
-} // extern "C"
-
+/**
+* @brief Initialize and start the zigbee thread 
+**/
 status_code_t zigbee_start(){
 
   zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);

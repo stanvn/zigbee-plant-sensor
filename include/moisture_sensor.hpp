@@ -19,7 +19,9 @@
 #define EQ_WET_A 0.1298
 #define EQ_WET_B -203.09
 
-
+/**
+* @brief Initialize and readout the soil moisture sensor
+**/
 class moisture_sensor_c{
   public:
     moisture_sensor_c(adc_c* adc, const struct pwm_dt_spec* pwm, const struct gpio_dt_spec* discharge_pin);

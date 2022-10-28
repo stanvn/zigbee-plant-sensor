@@ -6,6 +6,11 @@ LOG_MODULE_REGISTER(light_sensor, CONFIG_LOG_LIGHT_SENSOR_LEVEL);
 light_sensor_c::light_sensor_c(adc_c* adc, const struct gpio_dt_spec* photo_v_pin):
   m_adc(adc),m_photo_v_pin(photo_v_pin){}
 
+/**
+* @brief initializes the light sensor
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t light_sensor_c::init(){
   if(!device_is_ready(m_photo_v_pin->port)){
     return STATUS_ERROR_DEVICE_NOT_READY;
@@ -17,6 +22,11 @@ status_code_t light_sensor_c::init(){
   return m_adc->init();
 }
 
+/**
+* @brief Get a readout from the light sensor
+* @return >= 0 with the readout value
+* @return < 0 with a negative error message
+**/
 int32_t light_sensor_c::read(){
   gpio_pin_set_dt(m_photo_v_pin, 1);
   k_msleep(1);

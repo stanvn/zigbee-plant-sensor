@@ -23,6 +23,11 @@ adc_c::adc_c(uint16_t channel){
   m_adc_spec = m_adc_channels[channel];
 }
 
+/**
+* @brief Initializes the adc
+* @return STATUS_SUCCESS on success
+* @return Error code when init failed
+**/
 status_code_t adc_c::init(){
   status_code_t st;
   if(!device_is_ready(m_adc_spec.dev)){
@@ -33,9 +38,11 @@ status_code_t adc_c::init(){
 }
 
 
-/// @brief Read value from the adc
-///
-/// @return positive value or a negative error
+/**
+* @brief Read value from the adc
+* @return integer >= 0 containing the measurement value
+* @return integer < 0 with a negative error code on failure
+**/
 int32_t adc_c::read(){
   int32_t st;
   int32_t val_mv;

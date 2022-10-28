@@ -3,15 +3,21 @@
 #include <zephyr.h>
 LOG_MODULE_REGISTER(status_codes, 4);
 
-/// @brief Print status code
-/// @detail Print a status code to readable text. For debug usage
-/// @param print_status_code
+/** @brief Print status code
+* @detail Print a status code to readable text. For debug usage
+* @param print_status_code
+**/
 void print_status_code(status_code_t code){
   char text[STATUS_CODE_MAX_TEXT_LEN];
   get_status_code_text(code, text);
   LOG_ERR("%s", text);
 }
 
+/**
+* @brief convert status code to text
+* @param code the status code to convert
+* @param text text output
+**/
 void get_status_code_text(status_code_t code, char* text){
   switch(code){
     case(STATUS_SUCCESS):

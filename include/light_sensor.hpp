@@ -5,6 +5,9 @@
 #include "adc.hpp"
 #include "status_codes.hpp"
 
+/**
+* @brief Initialize and readout the phototransistor
+**/
 class light_sensor_c{
   public:
     light_sensor_c(adc_c* adc, const struct gpio_dt_spec* photo_v_pin);

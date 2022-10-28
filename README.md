@@ -20,15 +20,17 @@ The software is designed for the open source hardware [b-parasite](https://githu
 ### Complete hardware kit
 I am developing my own hardware that is smal and suited for Zigbee (With a reset button). I am willing to sell completely assembled hardware if there is enough interest. If you're interested please fill in the form below. You will receive a email once they become available. Thank you.
 
+**TODO: Add form link**
+
 ## Guides
-- [Flashing the firmware]()
-- [Adding Zigbee2MQTT support]()
-- [Calibration]()
+- [Flashing the firmware](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/firmware-flashing.md)
+- [Adding Zigbee2MQTT support](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/zigbee2mqtt.md#L12)
+- Calibration (TODO)
 
 ## Coating
 Straight from the factory PCBs are not coated on de sides. This might affect the reading in the future as water seeps inside. Therefore it is a good idea to make it water resistant with some coating. I have used [Kontakt 70](https://www.amazon.de/-/nl/dp/B000YIW7GS/ref=sr_1_4?__mk_nl_NL=ÅMÅŽÕÑ&crid=R4U07V394JKJ&keywords=kontakt+70&qid=1666814358&qu=eyJxc2MiOiIxLjk4IiwicXNhIjoiMS44MyIsInFzcCI6IjEuODgifQ%3D%3D&sprefix=kontakt+70%2Caps%2C66&sr=8-4), but I am still researching other alternatives. Let me know if you have better coating ideas.
 
-The only problem with coating is that you probably need to recalibrate the sensor. See the [calibration]() section on how to do this.
+The only problem with coating is that you probably need to recalibrate the sensor.
 
 ## Battery life
 By default, data is reported every two minutes. In the worst case scenario, all attributes are updated and transmitted. The picture below shows the power consumption of two minuuts in this worse case scenario.
