@@ -1,8 +1,18 @@
-/*
- * Copyright (c) 2012-2014 Wind River Systems, Inc.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
+// Code for Zigbee plant sensors based on the nRF52 microcontroller    
+// Copyright (C) 2022 Stan van Nieuwamerongen 
+//
+// This program is free software: you can redistribute it and/or modify it
+// under the terms of the GNU General Public License as published by the Free
+// Software Foundation, either version 3 of the License, or (at your option)
+// any later version.
+//
+// This program is distributed in the hope that it will be useful, but WITHOUT
+// ANY WARRANTY; without even the implied warranty of  MERCHANTABILITY or
+// FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+// more details.
+//
+// You should have received a copy of the GNU General Public License along with
+// this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <zephyr.h>
 #include <inttypes.h>
@@ -57,6 +67,11 @@ light_sensor_c light_sensor(&light_sensor_adc, &photo_v_pin);
 
 const struct device* shtc3;
 
+/**
+* @brief initializes the temeperature and humidity sensor
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 static status_code_t init_shtc3_device(void){
   shtc3 = DEVICE_DT_GET(SHTC_NODE);
   if(shtc3 == NULL){
@@ -74,6 +89,11 @@ static status_code_t init_shtc3_device(void){
   return STATUS_SUCCESS;
 }
 
+/**
+* @brief Readout the temperature and update the zigbee cluster attribute 
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t update_temperature(){
   struct sensor_value temp;
   int16_t temperature_attribute = 0;
@@ -104,6 +124,11 @@ status_code_t update_temperature(){
   return -st;
 }
 
+/**
+* @brief Readout the humidity and update the zigbee cluster attribute 
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t update_humidity(){
   struct sensor_value hum;
   int16_t humidity_attribute = 0;
@@ -134,6 +159,11 @@ status_code_t update_humidity(){
   return -st;
 }
 
+/**
+* @brief Readout the soil moisture and update the zigbee cluster attribute 
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t update_soil_moisture(int32_t battery_mv){
   int8_t moisture_val = moisture_sensor.read(battery_mv);
   if(moisture_val < 0){
@@ -157,6 +187,11 @@ status_code_t update_soil_moisture(int32_t battery_mv){
   return STATUS_SUCCESS;
 }
 
+/**
+* @brief Readout the light sensor and update the zigbee cluster attribute 
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t update_light_sensor(){
   uint16_t value = light_sensor.read();
   if(value < 0){
@@ -183,6 +218,11 @@ status_code_t update_light_sensor(){
   return STATUS_SUCCESS;
 }
 
+/**
+* @brief Readout the battery level and update the zigbee cluster attribute 
+* @return STATUS_SUCCESS (0) on success
+* @return positive error code otherwise
+**/
 status_code_t update_battery_state(int32_t battery_mv){
   if(battery_mv < 0){
     LOG_ERR("Failed to sample battery");
@@ -256,6 +296,10 @@ int main(void)
     update_soil_moisture(battery_mv);
     update_light_sensor();
     update_battery_state(battery_mv);
+
+    // Zephyr is smart enough to put the device in deep sleep when
+    // there is nothing running. So as long as we make sure not other
+    // background tasks are running, the device will go to deep sleep
     k_msleep(UPDATE_PERIOD_MS);
   }
 
