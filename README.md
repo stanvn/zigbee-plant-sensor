@@ -12,7 +12,7 @@ An open source Zigbee plant sensor project developed with the nRF Connect SDK (Z
 - Developed with the nRF Connect SDK (Zephyr RTOS)
 
 ## Hardware
-**TODO insert image**
+![Plant Photos](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/images/plant-photos.jpg)
 
 ### B-Parasite
 The software is designed for the open source hardware [b-parasite](https://github.com/rbaron/b-parasite). [Rbaron](https://github.com/rbaron) did a great job designing a soil moisture sensor, however his software is only made for BLE. Fortunately, the hardware contains a nRF52840 chip which is also compatible with Zigbee. The only problem is that it does not have a button which might be useful for factory reset. There are however less ideal workarounds that do not require a button. 
