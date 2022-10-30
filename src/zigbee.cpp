@@ -215,6 +215,7 @@ extern "C" {
     dev_ctx.power_config_attr.battery_percentage_min_threshold = (uint8_t)(BATTERY_ALARM_MV / ZCL_BATTERY_VOLTAGE_VALUE_DIVIDER) ;
 
   }
+} // extern "C"
 
 /**
 * @brief Initialize and start the zigbee thread 

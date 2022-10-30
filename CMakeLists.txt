@@ -11,7 +11,6 @@ project(plant_sensor_app)
 target_sources(app PRIVATE 
 src/main.cpp
 src/zb_zcl_soil_moisture.c
-src/buildin-led.cpp
 src/status_codes.cpp
 src/battery.cpp
 src/adc.cpp
