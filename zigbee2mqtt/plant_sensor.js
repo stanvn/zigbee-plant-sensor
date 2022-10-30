@@ -21,7 +21,7 @@ const definition = {
     await reporting.batteryVoltage(endpoint, overides);
     // await reporting.batteryPercentageRemaining(endpoint, overides);
     await reporting.temperature(endpoint, overides);
-    await reporting.humidity(endpoint. overides);
+    await reporting.humidity(endpoint, overides);
     await reporting.illuminance(firstEndpoint, overides);
     await reporting.soil_moisture(endpoint, overides);
 
