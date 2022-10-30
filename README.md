@@ -20,7 +20,7 @@ The software is designed for the open source hardware [b-parasite](https://githu
 ### Complete hardware kit
 I am developing my own hardware that is smal and suited for Zigbee (With a reset button). I am willing to sell completely assembled hardware if there is enough interest. If you're interested please fill in the form below. You will receive a email once they become available. Thank you.
 
-**TODO: Add form link**
+https://forms.gle/8Rz8CJUTZ9Qqvgi77
 
 ## Guides
 - [Flashing the firmware](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/firmware-flashing.md)
@@ -40,11 +40,11 @@ By default, data is reported every two minutes. In the worst case scenario, all 
 The measurements shows that the average power consumption is $14.53\text{uA}$. If we consider a CR2032 battery with a capacity of $210\text{mAh}$ we get $210/0.01453 = 14453$ hours or $602$ days! Even if the measurements are a bit off, we still have more than a year of battery life. 
 
 ## 3D printed case
-Check the link below for an easy to 3D print case. It is designed for threaded inserts with a outer radius of 4 mm and 3 mm bolts.
+Check the link below for an easy to 3D print case. It is designed for threaded inserts with a outer radius of 4 mm and 3 mm bolts. It is not yet optimized for the temperature and light sensor as it still blocks most of the light.
 
-**TODO add printables url**
+https://www.printables.com/model/305842-zigbee-plant-sensor-for-b-parasite
 
 ## Known issues
 - Battery voltage and alarms are not reported correctly. You can read them using the dev console in Zigbee2MQTT, but somehow the automatic reporting does not work with the Zigbee power config cluster.
 - The hardware does not have a button therefore it cannot be factory reset. The overcome this, the joining process is done when the battery is insert. If the sensor has not joined a network yet or it cannot find a known network, it scans for other networks. In this way it is still possible to join a new network even if it is not factory reset.
-- When firstly installed in a plant pot the moisture readings will go slightly up over the hours. Not sure if that is because it needs to settle in the soil first or if there is some drift in the ADC reading.
+- Not tested with ZHA from Home assistant yet. 
