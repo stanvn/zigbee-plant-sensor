@@ -1,4 +1,7 @@
 #include "adc.hpp"
+#include "logging/log.h"
+
+LOG_MODULE_REGISTER(adc, 4);
 
 #if !DT_NODE_EXISTS(DT_PATH(zephyr_user)) || \
 	!DT_NODE_HAS_PROP(DT_PATH(zephyr_user), io_channels)
@@ -52,6 +55,8 @@ int32_t adc_c::read(){
     return st;
   }
   val_mv = m_buf;
+
+
   st = adc_raw_to_millivolts_dt(&m_adc_spec, &val_mv);
   if(st < 0){
     return st;

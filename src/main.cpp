@@ -190,7 +190,7 @@ status_code_t update_soil_moisture(int32_t battery_mv){
 * @return positive error code otherwise
 **/
 status_code_t update_light_sensor(){
-  uint16_t value = light_sensor.read();
+  int32_t value = light_sensor.read();
   if(value < 0){
     LOG_ERR("Failed to read from light sensor");
     return -value;
