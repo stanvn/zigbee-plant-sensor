@@ -195,8 +195,18 @@ status_code_t update_light_sensor(){
     LOG_ERR("Failed to read from light sensor");
     return -value;
   }
-  LOG_INF("Light: %d", value);
-  int16_t light_sensor_attribute = (int16_t)(10000.0 * log10(value));
+  LOG_INF("Light: %d lx", value);
+
+  int16_t light_sensor_attribute;
+  if (value >= 1)
+  {
+    light_sensor_attribute = (int16_t)(10000.0 * log10(value) + 1.0);
+  }
+  else
+  {
+    light_sensor_attribute = 0;
+  }
+  
   LOG_DBG("Light attribute: %d", light_sensor_attribute);
 
   zb_zcl_status_t status = zb_zcl_set_attr_val(
