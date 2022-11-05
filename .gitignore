@@ -3,6 +3,7 @@ html
 
 # Build folder
 build
+debug
 build*
 
 # Prerequisites

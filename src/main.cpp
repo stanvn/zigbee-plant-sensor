@@ -46,9 +46,6 @@ extern "C" {
 #include "zb_zcl_soil_moisture.h"
 }
 
-#define UPDATE_PERIOD_MS 120000
-//#define UPDATE_PERIOD_MS 10000
-
 
 LOG_MODULE_REGISTER(app, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -300,7 +297,7 @@ int main(void)
     // Zephyr is smart enough to put the device in deep sleep when
     // there is nothing running. So as long as we make sure not other
     // background tasks are running, the device will go to deep sleep
-    k_msleep(UPDATE_PERIOD_MS);
+    k_msleep(CONFIG_ZIGBEE_UPDATE_PERIOD * 1000);
   }
 
   return 0;

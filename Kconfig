@@ -1,5 +1,9 @@
 source "Kconfig.zephyr"
 
+config ZIGBEE_UPDATE_PERIOD
+  int "Zigbee cluster attribute updated period in seconds"
+  default 120
+
 config LOG_MOISTURE_SENSOR_LEVEL
   int "Moisture sensor log level"
   default 3
@@ -11,3 +15,4 @@ config LOG_LIGHT_SENSOR_LEVEL
 config ZIGBEE_DATA_POLL_INTERVAL
   int "Zigbee data poll interval in milliseconds"
   default 5000
+
