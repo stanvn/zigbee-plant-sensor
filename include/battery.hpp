@@ -55,4 +55,6 @@ struct battery_level_point {
 unsigned int battery_level_pptt(unsigned int batt_mV,
 				const struct battery_level_point *curve);
 
+double battery_state_of_charge(unsigned int battery_voltage);
+
 #endif /* APPLICATION_BATTERY_H_ */

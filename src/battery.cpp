@@ -257,3 +257,13 @@ unsigned int battery_level_pptt(unsigned int batt_mV,
 		  * (batt_mV - pb->lvl_mV)
 		  / (pa->lvl_mV - pb->lvl_mV));
 }
+
+double battery_state_of_charge(unsigned int battery_voltage) {
+	const double full_v = 3400;
+	const double empty_v = 2000;
+
+	double soc = (battery_voltage - empty_v) / (full_v - empty_v);
+
+	LOG_DBG("SOC: %f \%", soc);
+	return (soc * 100);
+}
