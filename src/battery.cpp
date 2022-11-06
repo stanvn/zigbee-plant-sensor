@@ -257,22 +257,3 @@ unsigned int battery_level_pptt(unsigned int batt_mV,
 		  * (batt_mV - pb->lvl_mV)
 		  / (pa->lvl_mV - pb->lvl_mV));
 }
-
-double battery_state_of_charge(unsigned int battery_voltage) {
-	if (battery_voltage > BATTERY_FULL_MV)
-	{
-		return 100.0;
-	}
-	else if (battery_voltage < BATTERY_EMPTY_MV)
-	{
-		return 0.0;
-	}
-	else
-	{
-		/* This is a very simply 2-point linear interpolation as a first approach to approximate the value. There is room for improvement with a more sophisticated algorithm here. */
-		double soc = (battery_voltage - BATTERY_EMPTY_MV) / (BATTERY_FULL_MV - BATTERY_EMPTY_MV);
-
-		LOG_DBG("SOC: %f \%", soc);
-		return (soc * 100);
-	}
-}

@@ -279,7 +279,7 @@ status_code_t update_battery_state(int32_t battery_mv){
       (zb_uint8_t *)1,
       ZB_FALSE);
 
-  uint8_t soc = (uint8_t)round(battery_state_of_charge(battery_mv) * 2);
+  uint8_t soc = (uint8_t)round(battery_level_pptt(battery_mv, discharge_curve) / 100 * 2);
 
   status = zb_zcl_set_attr_val(
       PLANT_SENSOR_ENDPOINT,

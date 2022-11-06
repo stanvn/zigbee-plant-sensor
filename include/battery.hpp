@@ -37,11 +37,30 @@ int battery_sample(void);
  * monotonic decreasing within the sequence.
  */
 struct battery_level_point {
-	/** Remaining life at #lvl_mV. */
+	/** Remaining life at #lvl_mV. 
+	 * 100 % -> 10000 */
 	uint16_t lvl_pptt;
 
 	/** Battery voltage at #lvl_pptt remaining life. */
 	uint16_t lvl_mV;
+};
+
+/** Simple discharging curve for a typical CR2032 coin cell battery. 
+*
+* See https://github.com/stanvn/zigbee-plant-sensor/pull/4 
+*/
+static const struct battery_level_point discharge_curve[] = {
+	{10000, BATTERY_FULL_MV},
+	{9900, 3000},
+	{9800, 2900},
+	{9600, 2800},
+	{2100, 2700},
+	{1100, 2600},
+	{700, 2500},
+	{400, 2400},
+	{200, 2300},
+	{100, 2200},
+	{0, BATTERY_EMPTY_MV},
 };
 
 /** Calculate the estimated battery level based on a measured voltage.
@@ -56,7 +75,5 @@ struct battery_level_point {
  */
 unsigned int battery_level_pptt(unsigned int batt_mV,
 				const struct battery_level_point *curve);
-
-double battery_state_of_charge(unsigned int battery_voltage);
 
 #endif /* APPLICATION_BATTERY_H_ */
