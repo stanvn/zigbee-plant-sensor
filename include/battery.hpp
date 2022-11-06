@@ -11,6 +11,8 @@
 #define BATTERY_THRESHOLD1_MV 2400
 #define BATTERY_THRESHOLD2_MV 2600
 #define BATTERY_THRESHOLD3_MV 2800
+#define BATTERY_FULL_MV       3100
+#define BATTERY_EMPTY_MV      2000
 
 /** Enable or disable measurement of the battery voltage.
  *
