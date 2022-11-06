@@ -39,7 +39,7 @@ extern "C" {
       &dev_ctx.identify_attr.identify_time);
 
 
-  // Create Basic cluster attribute list
+  // Create basic cluster attribute list
   ZB_ZCL_DECLARE_BASIC_ATTRIB_LIST_EXT(
       basic_attr_list,
       &dev_ctx.basic_attr.zcl_version,
@@ -54,7 +54,7 @@ extern "C" {
       &dev_ctx.basic_attr.ph_env,
       dev_ctx.basic_attr.sw_ver);
 
-  // Create temperature measurement cluster attribure list
+  // Create temperature measurement cluster attribute list
   ZB_ZCL_DECLARE_TEMP_MEASUREMENT_ATTRIB_LIST(
       temp_measurement_attr_list,
       &dev_ctx.temp_measure_attrs.measure_value,
@@ -62,7 +62,7 @@ extern "C" {
       &dev_ctx.temp_measure_attrs.max_measure_value,
       &dev_ctx.temp_measure_attrs.tolerance);
 
-  // Create humidity measurement cluster attribure list
+  // Create humidity measurement cluster attribute list
   ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(
       humidity_measurement_attr_list,
       &dev_ctx.humidity_measurement_attrs.measure_value,
@@ -70,7 +70,7 @@ extern "C" {
       &dev_ctx.humidity_measurement_attrs.max_measure_value
       );
 
-  // Create soil moistuer measurement cluster attribure list
+  // Create soil moisture measurement cluster attribure list
   ZB_ZCL_DECLARE_REL_HUMIDITY_MEASUREMENT_ATTRIB_LIST(
       soil_moisture_measurement_attr_list,
       &dev_ctx.soil_moisture_measurement_attrs.measure_value,
@@ -78,22 +78,31 @@ extern "C" {
       &dev_ctx.soil_moisture_measurement_attrs.max_measure_value
       );
 
-  // Create illuminance measurement cluster attribure list
+  // Create illuminance measurement cluster attribute list
   ZB_ZCL_DECLARE_ILLUMINANCE_MEASUREMENT_ATTRIB_LIST(
       illum_measure_attr_list,
       &dev_ctx.illum_attrs.measure_value,
       &dev_ctx.illum_attrs.min_measure_value,
       &dev_ctx.illum_attrs.max_measure_value);
 
-  // Create power configuration cluster attribure list
-  ZB_ZCL_DECLARE_POWER_CONFIG_ATTRIB_LIST(
+  // Create power configuration cluster attribute list
+  ZB_ZCL_DECLARE_POWER_CONFIG_BATTERY_ATTRIB_LIST_EXT(
       power_config_attr_list,
       &dev_ctx.power_config_attr.battery_voltage,
       &dev_ctx.power_config_attr.battery_size,
       &dev_ctx.power_config_attr.battery_quantity,
       &dev_ctx.power_config_attr.battery_rated_voltage,
       &dev_ctx.power_config_attr.battery_alarm_mask,
-      &dev_ctx.power_config_attr.battery_voltage_min_threshold
+      &dev_ctx.power_config_attr.battery_voltage_min_threshold,
+      &dev_ctx.power_config_attr.battery_percentage_remaining,
+      &dev_ctx.power_config_attr.battery_voltage_threshold1,
+      &dev_ctx.power_config_attr.battery_voltage_threshold2,
+      &dev_ctx.power_config_attr.battery_voltage_threshold3,
+      &dev_ctx.power_config_attr.battery_percentage_min_threshold,
+      &dev_ctx.power_config_attr.battery_percentage_threshold1,
+      &dev_ctx.power_config_attr.battery_percentage_threshold2,
+      &dev_ctx.power_config_attr.battery_percentage_threshold3,
+      &dev_ctx.power_config_attr.battery_alarm_state
       );
 
   // Declare the plant sensor endpoint cluster list
@@ -114,7 +123,7 @@ extern "C" {
       PLANT_SENSOR_ENDPOINT,
       plant_sensor_clusters);
 
-  // Attacht the app contect to the plant sensor endpoint
+  // Attacht the app context to the plant sensor endpoint
   ZBOSS_DECLARE_DEVICE_CTX_1_EP(app_sensor_ctx, plant_sensor_ep);
 
 
