@@ -262,6 +262,38 @@ status_code_t update_battery_state(int32_t battery_mv){
     LOG_ERR("Failed to set ZCL attribute: %d", status);
     return -status;
   }
+
+  status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_SIZE_ID,
+      (zb_uint8_t *)ZB_ZCL_POWER_CONFIG_BATTERY_SIZE_OTHER,
+      ZB_FALSE);
+
+  status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_QUANTITY_ID,
+      (zb_uint8_t *)1,
+      ZB_FALSE);
+
+  uint8_t soc = (uint8_t)round(battery_level_pptt(battery_mv, discharge_curve) / 100 * 2);
+
+  status = zb_zcl_set_attr_val(
+      PLANT_SENSOR_ENDPOINT,
+      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+      ZB_ZCL_CLUSTER_SERVER_ROLE,
+      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID,
+      (zb_uint8_t *)&soc,
+      ZB_FALSE);
+  
+  if (status) {
+    LOG_ERR("Failed to set ZCL attribute: %d", status);
+    return -status;
+  }
+
   return STATUS_SUCCESS;
 
 }
