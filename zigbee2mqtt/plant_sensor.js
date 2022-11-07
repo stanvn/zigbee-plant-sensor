@@ -18,8 +18,7 @@ const definition = {
     await reporting.bind(endpoint, coordinatorEndpoint, [
       'msTemperatureMeasurement', 'msRelativeHumidity', 'msSoilMoisture', 'msIlluminanceMeasurement', 'genPowerCfg']);
     const overides = {min: 10, max: 64800, change: 0};
-    await reporting.batteryVoltage(endpoint, overides);
-    // await reporting.batteryPercentageRemaining(endpoint, overides);
+    await reporting.batteryPercentageRemaining(endpoint, overides);
     await reporting.temperature(endpoint, overides);
     await reporting.humidity(endpoint, overides);
     await reporting.illuminance(firstEndpoint, overides);
@@ -30,10 +29,9 @@ const definition = {
     e.temperature(),
     e.humidity(),
     e.soil_moisture(),
-    e.battery_voltage(),
     e.illuminance_lux(),
     e.illuminance(),
-    e.battery_low()],
+    e.battery()],
 };
 
 module.exports = definition;
