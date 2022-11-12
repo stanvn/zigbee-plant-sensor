@@ -53,7 +53,6 @@ extern "C"{
 #include <zboss_api_nwk.h>
 #include <zboss_api_af.h>
 #include "zcl/zb_zcl_commands.h"
-#include "zcl/zb_zcl_common.h"
 
 
 #define ZB_ZCL_CLUSTER_ID_SOIL_MOISTURE_MEASUREMENT 0x408U

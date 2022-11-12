@@ -42,7 +42,7 @@ int32_t light_sensor_c::read(){
   // Reference values are based on the datasheet where the current at
   // 10000 lux should be 1500 uA
   const double lux_ref = 10000.0f;
-  const double current_ref = 1.5e-3f;
+  const double current_ref = 3.59e-3f;
 
   const double current = voltage / phototransistor_resistor;
   const uint16_t brightness = (uint16_t)MAX(0, MIN(lux_ref * current / current_ref, UINT16_MAX));

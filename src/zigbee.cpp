@@ -8,6 +8,7 @@ extern "C" {
 #include <addons/zcl/zb_zcl_temp_measurement_addons.h>
 #include "zb_plant_sensor.h"
 #include "zb_zcl_power_config.h"
+#include "zboss_api_zdo.h"
 
 
 #define LED0_NODE DT_ALIAS(led0)
@@ -126,9 +127,17 @@ extern "C" {
   // Attacht the app context to the plant sensor endpoint
   ZBOSS_DECLARE_DEVICE_CTX_1_EP(app_sensor_ctx, plant_sensor_ep);
 
+  void led_blink_timer_cb(struct k_timer *timer_id);
+
+  K_TIMER_DEFINE(led_blink_timer, led_blink_timer_cb, NULL);
 
 
-  /** 
+  void led_blink_timer_cb(struct k_timer *timer_id){
+    gpio_pin_toggle_dt(&led_spec);
+  }
+
+
+  /**
    * @brief Zigbee stack event handler.
    * @param[in]   bufid   Reference to the Zigbee stack buffer
    *                      used to pass signal.
@@ -140,36 +149,45 @@ extern "C" {
     zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &p_sg_p);
     zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
 
+    static bool steering_success = false;
+
     switch (sig) {
       case ZB_BDB_SIGNAL_DEVICE_REBOOT:
-        /* fall-through */
-      // case ZB_BDB_SIGNAL_STEERING:
-      //   if (status == RET_OK) {
-      //   } else {
-      //   }
-      //   break;
-      case ZB_ZDO_SIGNAL_DEFAULT_START:
-        //  Device has started and joined the network.
+        // Fall through
+      case ZB_BDB_SIGNAL_STEERING:
         if(status == RET_OK){
-          LOG_INF("Joined the network");
-          // Reduce the data polling to save power 
-          zb_zdo_pim_set_long_poll_interval(CONFIG_ZIGBEE_DATA_POLL_INTERVAL);
+          steering_success = true;
           gpio_pin_set_dt(&led_spec, 0);
+          // Start blinking the led to indicate that the device is configuring
+          k_timer_stop(&led_blink_timer);
+          k_timer_start(&led_blink_timer, K_MSEC(500), K_MSEC(500));
+        }
+        else{
+          // Start the error blink
+          k_timer_stop(&led_blink_timer);
+          k_timer_start(&led_blink_timer, K_MSEC(100), K_MSEC(100));
         }
         break;
-
       case ZB_ZDO_SIGNAL_LEAVE:
         /* Update network status LED */
+        steering_success = false;
         gpio_pin_set_dt(&led_spec, 1);
         break;
       case ZB_COMMON_SIGNAL_CAN_SLEEP:
+        if(steering_success){ // Joining success
+          // Reduce the data polling to save power
+          zb_zdo_pim_set_long_poll_interval(CONFIG_ZIGBEE_DATA_POLL_INTERVAL);
+          k_timer_stop(&led_blink_timer);
+          gpio_pin_set_dt(&led_spec, 0);
+        }
         zb_sleep_now();
         break;
 
       default:
-        ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
         break;
     }
+
+    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 
     /* No application-specific behavior is required.
      * Call default signal handler.
@@ -184,8 +202,8 @@ extern "C" {
   }
 
   /**
-  * @brief initialize all the cluster attributes with a default value.
-  **/
+   * @brief initialize all the cluster attributes with a default value.
+   **/
   static void app_clusters_attr_init(void)
   {
     /* Basic cluster attributes data */
@@ -227,8 +245,8 @@ extern "C" {
 } // extern "C"
 
 /**
-* @brief Initialize and start the zigbee thread 
-**/
+ * @brief Initialize and start the zigbee thread
+ **/
 status_code_t zigbee_start(){
 
   zb_set_ed_timeout(ED_AGING_TIMEOUT_64MIN);
