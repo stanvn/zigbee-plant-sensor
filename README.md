@@ -18,9 +18,9 @@ An open source Zigbee plant sensor project developed with the nRF Connect SDK (Z
 The software is designed for the open source hardware [b-parasite](https://github.com/rbaron/b-parasite). [Rbaron](https://github.com/rbaron) did a great job designing a soil moisture sensor, however his software is only made for BLE. Fortunately, the hardware contains a nRF52840 chip which is also compatible with Zigbee. The only problem is that it does not have a button which might be useful for factory reset. There are however less ideal workarounds that do not require a button. 
 
 ### Complete hardware kit
-I am developing my own hardware that is smal and suited for Zigbee (With a reset button). I am willing to sell completely assembled hardware if there is enough interest. If you're interested please fill in the form below. You will receive a email once they become available. Thank you.
+I am developing my own hardware that is smal and suited for Zigbee (With a reset button). I am willing to sell completely assembled hardware if there is enough interest. If you're interested you can subscribe for a newsletter via the website. You will be one of the first to hear when the hardware becomes available!
 
-https://forms.gle/8Rz8CJUTZ9Qqvgi77
+https://homeplantsensor.com
 
 ## Guides
 - [Flashing the firmware](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/firmware-flashing.md)
