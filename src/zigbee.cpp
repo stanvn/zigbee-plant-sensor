@@ -14,7 +14,7 @@ extern "C" {
 #define LED0_NODE DT_ALIAS(led0)
 
   const struct gpio_dt_spec led_spec =  GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-  uint8_t identify_led_state = 0;
+  static bool joined = false;
 
   LOG_MODULE_REGISTER(zigbee, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -132,13 +132,48 @@ extern "C" {
   K_TIMER_DEFINE(led_blink_timer, led_blink_timer_cb, NULL);
 
 
+  /** @brief toggles the led when timer expires
+   *
+   *  @param timer ID
+   */
   void led_blink_timer_cb(struct k_timer *timer_id){
     gpio_pin_toggle_dt(&led_spec);
+  }
+
+  /**@brief Function to handle identify notification events on the first endpoint.
+   *
+   * @param  bufid  Unused parameter, required by ZBOSS scheduler API.
+   */
+  static void identify_cb(zb_bufid_t bufid)
+  {
+    zb_ret_t zb_err_code;
+    if (bufid) {
+      LOG_INF("Identify on");
+      /* Schedule a self-scheduling function that will toggle the LED. */
+      gpio_pin_set_dt(&led_spec, 0);
+      // Start blinking the led to indicate that the device is configuring
+      k_timer_stop(&led_blink_timer);
+      k_timer_start(&led_blink_timer, K_MSEC(1000), K_MSEC(1000));
+    }
+    else {
+      LOG_INF("Identify off");
+      /* Cancel the toggling function alarm and turn off LED. */
+      k_timer_stop(&led_blink_timer);
+      ZVUNUSED(zb_err_code);
+
+      /* Update network status/idenitfication LED. */
+      if (ZB_JOINED()) {
+        gpio_pin_set_dt(&led_spec, 0);
+      } else {
+        gpio_pin_set_dt(&led_spec, 1);
+      }
+    }
   }
 
 
   /**
    * @brief Zigbee stack event handler.
+   *
    * @param[in]   bufid   Reference to the Zigbee stack buffer
    *                      used to pass signal.
    */
@@ -164,6 +199,7 @@ extern "C" {
         }
         else{
           // Start the error blink
+          joined = false;
           k_timer_stop(&led_blink_timer);
           k_timer_start(&led_blink_timer, K_MSEC(100), K_MSEC(100));
         }
@@ -171,14 +207,16 @@ extern "C" {
       case ZB_ZDO_SIGNAL_LEAVE:
         /* Update network status LED */
         steering_success = false;
+        joined = false;
         gpio_pin_set_dt(&led_spec, 1);
         break;
       case ZB_COMMON_SIGNAL_CAN_SLEEP:
-        if(steering_success){ // Joining success
+        if(steering_success && !joined){ // Joining success
           // Reduce the data polling to save power
           zb_zdo_pim_set_long_poll_interval(CONFIG_ZIGBEE_DATA_POLL_INTERVAL);
           k_timer_stop(&led_blink_timer);
           gpio_pin_set_dt(&led_spec, 0);
+          joined = true;
         }
         zb_sleep_now();
         break;
@@ -272,7 +310,7 @@ status_code_t zigbee_start(){
   gpio_pin_set_dt(&led_spec, 1);
 
   /* Register handlers to identify notifications */
-  //ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(PLANT_SENSOR_ENDPOINT, identify_cb);
+  ZB_AF_SET_IDENTIFY_NOTIFICATION_HANDLER(PLANT_SENSOR_ENDPOINT, identify_cb);
   zigbee_erase_persistent_storage(ZB_FALSE);
 
 
