@@ -58,8 +58,15 @@ int8_t moisture_sensor_c::read(int32_t battery_mv){
   gpio_pin_set_dt(m_discharge_pin, 0);
 
   LOG_DBG("Sensor value: %d mV", adc_value); 
-
-  return get_moisture_percentage(battery_mv, adc_value);
+  // Only update the value when the reading differse more than
+  // MOISTURE_ADC_MIN_CHANGE from the last reading
+  if(adc_value < (last_adc_value - MOISTURE_ADC_MIN_CHANGE) ||
+      adc_value > (last_adc_value + MOISTURE_ADC_MIN_CHANGE)){
+    LOG_DBG("Update");
+    last_adc_value = adc_value;     
+    last_percentage_value = get_moisture_percentage(battery_mv, last_adc_value);
+  }
+  return last_percentage_value;
 }
 
 /**

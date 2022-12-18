@@ -19,6 +19,8 @@
 #define EQ_WET_A 0.1298
 #define EQ_WET_B -203.09
 
+#define MOISTURE_ADC_MIN_CHANGE 20
+
 /**
 * @brief Initialize and readout the soil moisture sensor
 **/
@@ -31,6 +33,8 @@ class moisture_sensor_c{
   private:
     int8_t get_moisture_percentage(int32_t bat_mV, int32_t adc_reading);
     adc_c* m_adc;
-    const struct pwm_dt_spec* m_pwm;
-    const struct gpio_dt_spec* m_discharge_pin;
+    int32_t                     last_adc_value        = 0;
+    uint8_t                     last_percentage_value = 0;
+    const struct pwm_dt_spec*   m_pwm;
+    const struct gpio_dt_spec*  m_discharge_pin;
 };
