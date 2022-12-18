@@ -97,7 +97,14 @@ status_code_t update_temperature(){
   double measured_temperature;
 
   status_code_t st = sensor_channel_get(shtc3, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-  measured_temperature = sensor_value_to_double(&temp);
+
+  // Fix for the bug in the SHTCx driver
+  if(temp.val2 >= 1000000){
+    temp.val2 = -(~temp.val2 & 0xfffff);
+  }
+
+  measured_temperature =  sensor_value_to_double(&temp);
+
   if(st == STATUS_SUCCESS){
     temperature_attribute = (int16_t)
       (measured_temperature *
