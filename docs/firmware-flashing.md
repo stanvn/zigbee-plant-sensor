@@ -30,4 +30,42 @@ The nRF52840 can be used as a J-Link programmer if you connect it like this:
 For other J-Links use the connections table above.
 
 Once the programmer is connected and you have downloaded the .hex file from the [release](https://github.com/stanvn/zigbee-plant-sensor/releases) page, you can flash the file onto the microcontroller using [nRF Connect Programmer](https://infocenter.nordicsemi.com/index.jsp?topic=/struct_nrftools/struct/nrftools_nrfconnect.html). There documentation describes in details how to flash the hex file.
+
+## Programming using ST-LINK
+Flashing to the nRF52840 can also be achieved with other programmers like ST-LINK but this is not possible using Nordicsemi's software.
+
+### Prepare for flashing:
+- Download the .hex file from the [release](https://github.com/stanvn/zigbee-plant-sensor/releases) page
+- Make sure your [ST-LINK driver](https://os.mbed.com/teams/ST/wiki/ST-Link-Driver) is correctly installed
+- Make sure you have a tool with which you can open telnet connections (e.g. [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/putty)/[KiTTY](https://9bis.net/kitty/))
+- Download and install  [OpenOCD](https://gnutoolchains.com/arm-eabi/openocd/)
+- In the "bin" folder of OpenOCD and create a file called "openocd_nrf52.cfg" with the following content:
+```
+#
+# Nordic Semiconductor NRF52 Development Kit (nRF52832)
+#
+source [find interface/stlink.cfg]
+
+transport select hla_swd
+
+source [find target/nrf52.cfg]
+```
+
+### Flashing
+- Connect the board to the programmer and the programmer to the PC
+- Run OpenOCD using `openocd -d2 -f openocd_nrf52.cfg`
+- OpenOCD should now state that it is listening to some ports including 4444 for telnet
+- Connect to port 4444 via telnet (e.g. with [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/putty) or [KiTTY](https://9bis.net/kitty/)) and execute the following set of commands replacing the path with the appropriate full path to the downloaded hex file
+```
+reset init
+reset halt
+nrf51 mass_erase
+set WORKAREASIZE 0x4000
+program C:/path/to/hex/file/zigbee-plant-sensor-vXX.hex verify
+reset run
+exit
+```
+- Disconnect everything and enjoy your newly flashed zigbee plant sensor!
+
+
  
