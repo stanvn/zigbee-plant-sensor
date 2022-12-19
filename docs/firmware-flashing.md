@@ -38,8 +38,8 @@ Flashing to the nRF52840 can also be achieved with other programmers like ST-LIN
 - Download the .hex file from the [release](https://github.com/stanvn/zigbee-plant-sensor/releases) page
 - Make sure your [ST-LINK driver](https://os.mbed.com/teams/ST/wiki/ST-Link-Driver) is correctly installed
 - Make sure you have a tool with which you can open telnet connections (e.g. [PuTTY](https://www.chiark.greenend.org.uk/~sgtatham/putty/putty)/[KiTTY](https://9bis.net/kitty/))
-- Download and install  [OpenOCD](https://gnutoolchains.com/arm-eabi/openocd/)
-- In the "bin" folder of OpenOCD and create a file called "openocd_nrf52.cfg" with the following content:
+- Download and install  [OpenOCD](https://openocd.org/pages/getting-openocd.html)
+- Open the "bin" folder of your OpenOCD installation and create a file called "openocd_nrf52.cfg" with the following content:
 ```
 #
 # Nordic Semiconductor NRF52 Development Kit (nRF52832)
