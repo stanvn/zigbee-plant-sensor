@@ -67,5 +67,39 @@ exit
 ```
 - Disconnect everything and enjoy your newly flashed zigbee plant sensor!
 
+## Programming using Raspberry Pi
 
- 
+Compile and install OpenOCD from this fixed branch of a RPi SPI version of OpenOCD:
+
+`git clone https://github.com/Zorvalt/openocd-spi/ --branch fix-multiple-gcc-10-errors`  
+See this issue: https://github.com/lupyuen/openocd-spi/issues/6
+```
+apt install build-essential libtool libhidapi-dev netcat
+cd openocd-spi
+./bootstrap
+./configure --enable-sysfsgpio --enable-bcm2835spi --enable-cmsis-dap
+make
+```
+
+Connect pins according to this Pi pinout: https://www.pcbway.com/blog/technology/OpenOCD_on_Raspberry_Pi__Better_with_SWD_on_SPI.html
+
+Create a `swd-pi-ocd` with the following contents:
+
+```
+# Select the Broadcom SPI interface for Raspberry Pi (SWD transport)
+interface bcm2835spi
+
+# Set the SPI speed in kHz
+bcm2835spi_speed 31200  # 31.2 MHz
+
+# Select nRF52 as target
+source [find target/nrf52.cfg]
+```
+
+Start openocd:
+
+`src/openocd -s tcl -f swd-pi.ocd -d2`
+
+You can then connect to OpenOCD in a new terminal with `nc localhost 4444`.
+
+Download the hex file on your Pi and follow the telnet flashing instructions similar to the ST-Link above.
