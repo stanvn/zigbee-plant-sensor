@@ -57,6 +57,7 @@
     led0 = &led0;
     fast-discharge-en = &fast_discharge_en;
     photo-v = &photo_v;
+    button0 = &button0;
   };
 };
 

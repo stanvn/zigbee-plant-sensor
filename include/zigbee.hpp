@@ -1,4 +1,5 @@
 #pragma once
+
 #include "status_codes.hpp"
 
 extern "C" {
@@ -48,6 +49,14 @@ extern "C" {
 #define TEMPERATURE_SENSOR_ENDPOINT     0x01
 #define WATER_CONTENT_ENDPOINT            0x02
 
+enum zigbee_state_e{
+    ZIGBEE_STEERING,
+    ZIGBEE_JOINING,
+    ZIGBEE_JOINED,
+    ZIGBEE_ERROR
+};
+
+extern zigbee_state_e zigbee_state;
 
 status_code_t zigbee_start();
 

@@ -4,6 +4,17 @@
 #include "zigbee.hpp"
 #include "battery.hpp"
 
+#define LED0_NODE DT_ALIAS(led0)
+#define FACTORY_RESET_TIMEOUT 5000
+#define MAX_STEERING_COUNT 4
+
+#define BUTTON0_NODE  DT_ALIAS(button0)
+#if !DT_NODE_HAS_STATUS(BUTTON0_NODE, okay)
+#error "Unsupported board: button0 devicetree alias is not defined"
+#endif
+
+zigbee_state_e zigbee_state = ZIGBEE_STEERING;
+
 extern "C" {
 #include <addons/zcl/zb_zcl_temp_measurement_addons.h>
 #include "zb_plant_sensor.h"
@@ -11,10 +22,12 @@ extern "C" {
 #include "zboss_api_zdo.h"
 
 
-#define LED0_NODE DT_ALIAS(led0)
+  static const struct gpio_dt_spec button = GPIO_DT_SPEC_GET_OR(BUTTON0_NODE, gpios,
+      {0});
+  static struct gpio_callback button_cb_data;
 
   const struct gpio_dt_spec led_spec =  GPIO_DT_SPEC_GET(LED0_NODE, gpios);
-  static bool joined = false;
+  static uint8_t steering_failed_counter = 0;
 
   LOG_MODULE_REGISTER(zigbee, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -33,6 +46,10 @@ extern "C" {
 
   /* Zigbee device application context storage. */
   static struct zb_device_ctx dev_ctx;
+
+  /* Forward declaration of the buttun pressed function */
+  void button_pressed(const struct device *dev, struct gpio_callback *cb,
+      uint32_t pins);
 
   // Create identify cluster attibute list
   ZB_ZCL_DECLARE_IDENTIFY_ATTRIB_LIST(
@@ -128,8 +145,10 @@ extern "C" {
   ZBOSS_DECLARE_DEVICE_CTX_1_EP(app_sensor_ctx, plant_sensor_ep);
 
   void led_blink_timer_cb(struct k_timer *timer_id);
+  void factory_reset_timer_expiry(struct k_timer *timer_id);
 
   K_TIMER_DEFINE(led_blink_timer, led_blink_timer_cb, NULL);
+  K_TIMER_DEFINE(factory_reset_timer, factory_reset_timer_expiry, NULL);
 
 
   /** @brief toggles the led when timer expires
@@ -183,49 +202,86 @@ extern "C" {
     zb_zdo_app_signal_hdr_t *p_sg_p = NULL;
     zb_zdo_app_signal_type_t sig = zb_get_app_signal(bufid, &p_sg_p);
     zb_ret_t status = ZB_GET_APP_SIGNAL_STATUS(bufid);
-
-    static bool steering_success = false;
-
+    
+    if(sig != ZB_COMMON_SIGNAL_CAN_SLEEP){
+      LOG_DBG("SIGNAL: %d", sig);
+    }
     switch (sig) {
       case ZB_BDB_SIGNAL_DEVICE_REBOOT:
         // Fall through
       case ZB_BDB_SIGNAL_STEERING:
         if(status == RET_OK){
-          steering_success = true;
-          gpio_pin_set_dt(&led_spec, 0);
-          // Start blinking the led to indicate that the device is configuring
-          k_timer_stop(&led_blink_timer);
-          k_timer_start(&led_blink_timer, K_MSEC(500), K_MSEC(500));
+          zigbee_state = ZIGBEE_JOINING;
+          steering_failed_counter = 0;
+          LOG_DBG("Steering success");
+          ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
         }
         else{
           // Start the error blink
-          joined = false;
+          zigbee_state = ZIGBEE_STEERING;
+          steering_failed_counter += 1;
           k_timer_stop(&led_blink_timer);
           k_timer_start(&led_blink_timer, K_MSEC(100), K_MSEC(100));
+          // Do not continue searching for a network after a few failed attempts 
+          if(steering_failed_counter <= MAX_STEERING_COUNT){
+            ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
+          }
+          else{
+            LOG_INF("Failed steering after %d attempts", MAX_STEERING_COUNT);
+            gpio_pin_set_dt(&led_spec, 0);
+            k_timer_stop(&led_blink_timer);
+            zigbee_state = ZIGBEE_ERROR;
+            zb_sleep_now();
+          }
         }
         break;
-      case ZB_ZDO_SIGNAL_LEAVE:
+      case ZB_ZDO_SIGNAL_LEAVE: {
         /* Update network status LED */
-        steering_success = false;
-        joined = false;
+        if(status == RET_OK){
+          zb_zdo_signal_leave_params_t *leave_params = ZB_ZDO_SIGNAL_GET_PARAMS(&sig, zb_zdo_signal_leave_params_t);
+          LOG_INF("Network left (leave type: %d)", leave_params->leave_type);
+
+          /* Set joining_signal_received to false so broken rejoin procedure can be detected correctly. */
+          if (leave_params->leave_type == ZB_NWK_LEAVE_TYPE_REJOIN) {
+              zigbee_state == ZIGBEE_ERROR;
+          }
+        }
+        LOG_DBG("Left network");
+        zigbee_state = ZIGBEE_STEERING;
         gpio_pin_set_dt(&led_spec, 1);
+        ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
         break;
+      } 
+      case ZB_NLME_STATUS_INDICATION: {
+        zb_zdo_signal_nlme_status_indication_params_t *nlme_status_ind =
+          ZB_ZDO_SIGNAL_GET_PARAMS(&sig, zb_zdo_signal_nlme_status_indication_params_t);
+        if (nlme_status_ind->nlme_status.status == ZB_NWK_COMMAND_STATUS_PARENT_LINK_FAILURE) {
+
+          /* Check for broken rejoin procedure and restart the device to recover. */
+          if (zigbee_state == ZIGBEE_ERROR) {
+              zb_reset(0);
+          }
+        }
+        break;
+      }
+
       case ZB_COMMON_SIGNAL_CAN_SLEEP:
-        if(steering_success && !joined){ // Joining success
+        if(zigbee_state == ZIGBEE_JOINING){ // Joining success
           // Reduce the data polling to save power
+          LOG_DBG("Joined network");
           zb_zdo_pim_set_long_poll_interval(CONFIG_ZIGBEE_DATA_POLL_INTERVAL);
           k_timer_stop(&led_blink_timer);
           gpio_pin_set_dt(&led_spec, 0);
-          joined = true;
+          zigbee_state = ZIGBEE_JOINED;
         }
         zb_sleep_now();
         break;
 
       default:
+        ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
         break;
     }
 
-    ZB_ERROR_CHECK(zigbee_default_signal_handler(bufid));
 
     /* No application-specific behavior is required.
      * Call default signal handler.
@@ -237,6 +293,26 @@ extern "C" {
     if (bufid) {
       zb_buf_free(bufid);
     }
+  }
+
+  void button_init(){
+    int ret = gpio_pin_configure_dt(&button, GPIO_INPUT);
+    if (ret != 0) {
+      LOG_ERR("Error %d: failed to configure %s pin %d\n",
+          ret, button.port->name, button.pin);
+      return;
+    }
+
+    ret = gpio_pin_interrupt_configure_dt(&button,
+        GPIO_INT_EDGE_TO_ACTIVE);
+    if (ret != 0) {
+      LOG_ERR("Error %d: failed to configure interrupt on %s pin %d\n",
+          ret, button.port->name, button.pin);
+      return;
+    }
+
+    gpio_init_callback(&button_cb_data, button_pressed, BIT(button.pin));
+    gpio_add_callback(button.port, &button_cb_data);
   }
 
   /**
@@ -280,6 +356,32 @@ extern "C" {
     dev_ctx.power_config_attr.battery_percentage_min_threshold = (uint8_t)(BATTERY_ALARM_MV / ZCL_BATTERY_VOLTAGE_VALUE_DIVIDER) ;
 
   }
+
+
+  /// @brief Butten pressed callback
+  ///
+  /// @param dev device beloning to the button that is pressed
+  /// @param cb callback context
+  /// @param pins
+  void button_pressed(const struct device *dev, struct gpio_callback *cb,
+      uint32_t pins)
+  {
+    // Stop the timer if one is already running
+    LOG_DBG("Button Pressed");
+    k_timer_stop(&factory_reset_timer);
+    k_timer_start(&factory_reset_timer, K_MSEC(FACTORY_RESET_TIMEOUT), K_NO_WAIT);
+
+  }
+
+  void factory_reset_timer_expiry(struct k_timer *timer_id){
+    int32_t button_state = gpio_pin_get_dt(&button);
+    if(button_state){
+      // Do a factory reset
+      k_timer_stop(&led_blink_timer);
+      LOG_INF("Schedule Factory Reset; stop timer; set factory_reset_done flag");
+      ZB_SCHEDULE_APP_CALLBACK(zb_bdb_reset_via_local_action, 0);
+    }
+  }
 } // extern "C"
 
 /**
@@ -296,6 +398,7 @@ status_code_t zigbee_start(){
   ZB_AF_REGISTER_DEVICE_CTX(&app_sensor_ctx);
 
   app_clusters_attr_init();
+  button_init();
 
   if (!device_is_ready(led_spec.port)) {
     LOG_ERR("LED is not ready");

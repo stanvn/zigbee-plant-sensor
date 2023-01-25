@@ -14,10 +14,12 @@
 // You should have received a copy of the GNU General Public License along with
 // this program.  If not, see <http://www.gnu.org/licenses/>.
 
+#include <sys/_stdint.h>
 #include <zephyr.h>
 #include <inttypes.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <math.h>
 
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
@@ -44,8 +46,10 @@ extern "C" {
 #include <addons/zcl/zb_zcl_temp_measurement_addons.h>
 #include "zb_plant_sensor.h"
 #include "zb_zcl_soil_moisture.h"
+#include "zboss_api_zdo.h"
 }
 
+// #define CALIBRATION
 
 LOG_MODULE_REGISTER(app, CONFIG_LOG_DEFAULT_LEVEL);
 
@@ -92,38 +96,36 @@ static status_code_t init_shtc3_device(void){
 * @return positive error code otherwise
 **/
 status_code_t update_temperature(){
-  struct sensor_value temp;
-  int16_t temperature_attribute = 0;
-  double measured_temperature;
+  struct        sensor_value temp;
+  int16_t       temperature_attribute   = 0;
+  double        measured_temperature    = 0;
+  static double previous_temerature     = 0; 
 
   status_code_t st = sensor_channel_get(shtc3, SENSOR_CHAN_AMBIENT_TEMP, &temp);
-
-  // Fix for the bug in the SHTCx driver
-  if(temp.val2 >= 1000000){
-    temp.val2 = -(~temp.val2 & 0xfffff);
-  }
-
-  measured_temperature =  sensor_value_to_double(&temp);
-
+  // Make sure it only outputs one decimal
+  measured_temperature = round(sensor_value_to_double(&temp) * 10)/10;
   if(st == STATUS_SUCCESS){
-    temperature_attribute = (int16_t)
-      (measured_temperature *
-       ZCL_TEMPERATURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
-    LOG_INF("Temp: %d", temperature_attribute);
+    if(measured_temperature != previous_temerature){
+      previous_temerature = measured_temperature;
+      temperature_attribute = (int16_t)
+        (measured_temperature *
+         ZCL_TEMPERATURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+      LOG_INF("Temp: %d", temperature_attribute);
 
-    zb_zcl_status_t status = zb_zcl_set_attr_val(
-        PLANT_SENSOR_ENDPOINT,
-        ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
-        ZB_ZCL_CLUSTER_SERVER_ROLE,
-        ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
-        (zb_uint8_t *)&temperature_attribute,
-        ZB_FALSE);
+      zb_zcl_status_t status = zb_zcl_set_attr_val(
+          PLANT_SENSOR_ENDPOINT,
+          ZB_ZCL_CLUSTER_ID_TEMP_MEASUREMENT,
+          ZB_ZCL_CLUSTER_SERVER_ROLE,
+          ZB_ZCL_ATTR_TEMP_MEASUREMENT_VALUE_ID,
+          (zb_uint8_t *)&temperature_attribute,
+          ZB_FALSE);
 
-    if (status) {
-      LOG_ERR("Failed to set ZCL attribute: %d", status);
-      return -status;
+      if (status) {
+        LOG_ERR("Failed to set ZCL attribute: %d", status);
+        return -status;
+      }
+
     }
-
   }
   return -st;
 }
@@ -134,31 +136,35 @@ status_code_t update_temperature(){
 * @return positive error code otherwise
 **/
 status_code_t update_humidity(){
-  struct sensor_value hum;
-  int16_t humidity_attribute = 0;
-  double measured_humidity;
+  struct        sensor_value hum;
+  int16_t       humidity_attribute  = 0;
+  double        measured_humidity   = 0;
+  static double previous_humidity   = 0; 
 
   status_code_t st = sensor_channel_get(shtc3, SENSOR_CHAN_HUMIDITY, &hum);
-  measured_humidity = sensor_value_to_double(&hum);
+  measured_humidity = round(sensor_value_to_double(&hum) * 10)/10;
   if(st == STATUS_SUCCESS){
-    humidity_attribute = (int16_t)
-      (measured_humidity *
-       ZCL_HUMIDITY_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
-    LOG_INF("Hum: %d.%06d\n", hum.val1, hum.val2);
+    if(previous_humidity != measured_humidity){
+      previous_humidity = measured_humidity;
+      humidity_attribute = (int16_t)
+        (measured_humidity *
+         ZCL_HUMIDITY_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+      LOG_INF("Hum attribute: %d", humidity_attribute);
 
-    zb_zcl_status_t status = zb_zcl_set_attr_val(
-        PLANT_SENSOR_ENDPOINT,
-        ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
-        ZB_ZCL_CLUSTER_SERVER_ROLE,
-        ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
-        (zb_uint8_t *)&humidity_attribute,
-        ZB_FALSE);
+      zb_zcl_status_t status = zb_zcl_set_attr_val(
+          PLANT_SENSOR_ENDPOINT,
+          ZB_ZCL_CLUSTER_ID_REL_HUMIDITY_MEASUREMENT,
+          ZB_ZCL_CLUSTER_SERVER_ROLE,
+          ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
+          (zb_uint8_t *)&humidity_attribute,
+          ZB_FALSE);
 
-    if (status) {
-      LOG_ERR("Failed to set ZCL attribute: %d", status);
-      return -status;
+      if (status) {
+        LOG_ERR("Failed to set ZCL attribute: %d", status);
+        return -status;
+      }
+
     }
-
   }
   return -st;
 }
@@ -169,24 +175,28 @@ status_code_t update_humidity(){
 * @return positive error code otherwise
 **/
 status_code_t update_soil_moisture(int32_t battery_mv){
-  int8_t moisture_val = moisture_sensor.read(battery_mv);
+  static int8_t previous_moisture = 0;
+  int8_t        moisture_val = moisture_sensor.read(battery_mv);
   if(moisture_val < 0){
     LOG_ERR("Failed to read soil moisture");
     return -moisture_val;
   }
-  int16_t moisture_attribute = (int16_t)(moisture_val * ZCL_SOIL_MOISTURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
-  LOG_INF("Soil moisture: %d\n", moisture_val);
+  if(moisture_val != previous_moisture){
+    previous_moisture = moisture_val;
+    int16_t moisture_attribute = (int16_t)(moisture_val * ZCL_SOIL_MOISTURE_MEASUREMENT_MEASURED_VALUE_MULTIPLIER);
+    LOG_INF("Soil moisture: %d\n", moisture_val);
 
-  zb_zcl_status_t status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_SOIL_MOISTURE_MEASUREMENT,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
-      (zb_uint8_t *)&moisture_attribute,
-      ZB_FALSE);
-  if (status) {
-    LOG_ERR("Failed to set ZCL attribute: %d", status);
-    return -status;
+    zb_zcl_status_t status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_SOIL_MOISTURE_MEASUREMENT,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_REL_HUMIDITY_MEASUREMENT_VALUE_ID,
+        (zb_uint8_t *)&moisture_attribute,
+        ZB_FALSE);
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
   }
   return STATUS_SUCCESS;
 }
@@ -197,27 +207,32 @@ status_code_t update_soil_moisture(int32_t battery_mv){
 * @return positive error code otherwise
 **/
 status_code_t update_light_sensor(){
-  int32_t value = light_sensor.read();
+  static int32_t  previous_light  = 0;
+  int32_t         value           = light_sensor.read();
+
   if(value < 0){
     LOG_ERR("Failed to read from light sensor");
     return -value;
   }
-  LOG_INF("Light: %d", value);
-  int16_t light_sensor_attribute = (int16_t)(10000.0 * log10(value));
-  LOG_DBG("Light attribute: %d", light_sensor_attribute);
+  if(value != previous_light){
+    previous_light = value;
+    LOG_INF("Light: %d", value);
+    int16_t light_sensor_attribute = (int16_t)(10000.0 * log10(value));
+    LOG_DBG("Light attribute: %d", light_sensor_attribute);
 
-  zb_zcl_status_t status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID,
-      (zb_uint8_t *)&light_sensor_attribute,
-      ZB_FALSE);
+    zb_zcl_status_t status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_ILLUMINANCE_MEASUREMENT,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_ILLUMINANCE_MEASUREMENT_MEASURED_VALUE_ID,
+        (zb_uint8_t *)&light_sensor_attribute,
+        ZB_FALSE);
 
 
-  if (status) {
-    LOG_ERR("Failed to set ZCL attribute: %d", status);
-    return -status;
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
   }
   return STATUS_SUCCESS;
 }
@@ -228,85 +243,150 @@ status_code_t update_light_sensor(){
 * @return positive error code otherwise
 **/
 status_code_t update_battery_state(int32_t battery_mv){
-  if(battery_mv < 0){
-    LOG_ERR("Failed to sample battery");
-    return -battery_mv;
-  }
-  uint8_t battery_attribute = (uint8_t)(battery_mv / ZCL_BATTERY_VOLTAGE_VALUE_DIVIDER);
-  zb_zcl_status_t status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_ID,
-      (zb_uint8_t *)&battery_attribute,
-      ZB_FALSE);
-
-  if (status) {
-    LOG_ERR("Failed to set ZCL attribute: %d", status);
-    return -status;
-  }
-
-  uint8_t alarm_mask = 0;
-  if(battery_mv < BATTERY_ALARM_MV)
-    alarm_mask |= 1;
-  if(battery_mv < BATTERY_THRESHOLD1_MV)
-    alarm_mask |= 1 << 1;
-  if(battery_mv < BATTERY_THRESHOLD2_MV)
-    alarm_mask |= 1 << 2;
-  if(battery_mv < BATTERY_THRESHOLD3_MV)
-    alarm_mask |= 1 << 3;
-  LOG_DBG("Battery alarm mask: %b", alarm_mask);
-
-  status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_ALARM_MASK_ID,
-      (zb_uint8_t *)&alarm_mask,
-      ZB_FALSE);
-
-  if (status) {
-    LOG_ERR("Failed to set ZCL attribute: %d", status);
-    return -status;
-  }
-
-  status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_SIZE_ID,
-      (zb_uint8_t *)ZB_ZCL_POWER_CONFIG_BATTERY_SIZE_OTHER,
-      ZB_FALSE);
-
-  status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_QUANTITY_ID,
-      (zb_uint8_t *)1,
-      ZB_FALSE);
-
+  static uint8_t previous_battery = 0;
   uint8_t soc = (uint8_t)round(battery_level_pptt(battery_mv, discharge_curve) / 100 * 2);
 
-  status = zb_zcl_set_attr_val(
-      PLANT_SENSOR_ENDPOINT,
-      ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
-      ZB_ZCL_CLUSTER_SERVER_ROLE,
-      ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID,
-      (zb_uint8_t *)&soc,
-      ZB_FALSE);
-  
-  if (status) {
-    LOG_ERR("Failed to set ZCL attribute: %d", status);
-    return -status;
-  }
+  if(previous_battery != soc){
+    previous_battery = soc;
+    if(battery_mv < 0){
+      LOG_ERR("Failed to sample battery");
+      return -battery_mv;
+    }
+    uint8_t battery_attribute = (uint8_t)(battery_mv / ZCL_BATTERY_VOLTAGE_VALUE_DIVIDER);
+    zb_zcl_status_t status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_VOLTAGE_ID,
+        (zb_uint8_t *)&battery_attribute,
+        ZB_FALSE);
+    LOG_DBG("Battery value: %d mV", battery_mv);
 
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
+
+    uint8_t alarm_mask = 0;
+    if(battery_mv < BATTERY_ALARM_MV)
+      alarm_mask |= 1;
+    if(battery_mv < BATTERY_THRESHOLD1_MV)
+      alarm_mask |= 1 << 1;
+    if(battery_mv < BATTERY_THRESHOLD2_MV)
+      alarm_mask |= 1 << 2;
+    if(battery_mv < BATTERY_THRESHOLD3_MV)
+      alarm_mask |= 1 << 3;
+    LOG_DBG("Battery alarm mask: %d", alarm_mask);
+
+    status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_ALARM_MASK_ID,
+        (zb_uint8_t *)&alarm_mask,
+        ZB_FALSE);
+
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
+
+    status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_SIZE_ID,
+        (zb_uint8_t *)ZB_ZCL_POWER_CONFIG_BATTERY_SIZE_OTHER,
+        ZB_FALSE);
+
+    status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_QUANTITY_ID,
+        (zb_uint8_t *)1,
+        ZB_FALSE);
+
+
+    status = zb_zcl_set_attr_val(
+        PLANT_SENSOR_ENDPOINT,
+        ZB_ZCL_CLUSTER_ID_POWER_CONFIG,
+        ZB_ZCL_CLUSTER_SERVER_ROLE,
+        ZB_ZCL_ATTR_POWER_CONFIG_BATTERY_PERCENTAGE_REMAINING_ID,
+        (zb_uint8_t *)&soc,
+        ZB_FALSE);
+
+    if (status) {
+      LOG_ERR("Failed to set ZCL attribute: %d", status);
+      return -status;
+    }
+  }
   return STATUS_SUCCESS;
 
 }
 
+static void app_loop(zb_bufid_t bufid){
+  int32_t battery_mv = 0;
+  LOG_INF("APP_LOOP");
+  if(zigbee_state == ZIGBEE_JOINED){
+    LOG_INF("Updating sensor values");
+    battery_measure_enable(true);
+    battery_mv = battery_sample();
+    battery_measure_enable(false);
+    sensor_sample_fetch(shtc3);
+    update_temperature();
+    update_humidity();
+    update_soil_moisture(battery_mv);
+    update_light_sensor();
+    update_battery_state(battery_mv);
+
+    ZB_SCHEDULE_APP_ALARM(app_loop, bufid, 
+        ZB_MILLISECONDS_TO_BEACON_INTERVAL(
+          CONFIG_ZIGBEE_UPDATE_PERIOD * 1000));
+  }
+  else if(zigbee_state == ZIGBEE_ERROR){
+    // Do not reschedule and wait for a factory reset
+    return;
+  }
+  else{
+    ZB_SCHEDULE_APP_ALARM(app_loop, bufid, 
+        ZB_MILLISECONDS_TO_BEACON_INTERVAL(1000));
+  }
+}
+
 int main(void)
 {
+  #ifdef CALIBRATION
+ LOG_INF("Plant sensor application started!");
+  check_error(battery_measure_enable(true), "Failed to start battery measurement");
+  check_error(moisture_sensor.init(), "Failed to init moisture sensor");
+
+  int32_t battery_mv = 0;
+  battery_measure_enable(true);
+
+  int32_t sum_moisture = 0;
+  int32_t sum_battery = 0;
+  const int samples = 100;
+  int32_t sample_counter = 0;
+
+  while(true){
+    battery_mv = battery_sample();
+    int32_t moisture_mV = moisture_sensor.read_raw();
+    sum_moisture += moisture_mV;
+    sum_battery += battery_mv;
+    sample_counter += 1;
+    if(sample_counter >= samples){
+      sample_counter = 0;
+      LOG_INF("Battery: %d mV", sum_battery/samples);
+      LOG_INF("Moisture: %d mV", sum_moisture/samples);
+      sum_moisture = 0;
+      sum_battery = 0;
+    }
+    k_msleep(100);
+  }
+
+  return 0;
+  #else
   LOG_INF("Plant sensor application started!");
   check_error(battery_measure_enable(true), "Failed to start battery measurement");
   check_error(moisture_sensor.init(), "Failed to init moisture sensor");
@@ -319,25 +399,9 @@ int main(void)
   }
 
   zigbee_start();
-
-  int32_t battery_mv = 0;
-
-  while(true){
-    battery_measure_enable(true);
-    battery_mv = battery_sample();
-    battery_measure_enable(false);
-    sensor_sample_fetch(shtc3);
-    update_temperature();
-    update_humidity();
-    update_soil_moisture(battery_mv);
-    update_light_sensor();
-    update_battery_state(battery_mv);
-
-    // Zephyr is smart enough to put the device in deep sleep when
-    // there is nothing running. So as long as we make sure not other
-    // background tasks are running, the device will go to deep sleep
-    k_msleep(CONFIG_ZIGBEE_UPDATE_PERIOD * 1000);
-  }
+  ZB_SCHEDULE_APP_ALARM(app_loop, ZB_ALARM_ANY_PARAM, 
+      ZB_MILLISECONDS_TO_BEACON_INTERVAL(0)); 
 
   return 0;
+  #endif
 }
