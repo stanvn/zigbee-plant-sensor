@@ -1,5 +1,10 @@
 ![banner](https://github.com/stanvn/zigbee-plant-sensor/blob/main/docs/images/zps-banner.png)
 
+> [!IMPORTANT]  
+> This project is no longer maintained!
+>
+> Feel free to use and improve the code for your own projects.
+
 # Zigbee Plant Sensor for Zigbee2MQTT
 An open source Zigbee plant sensor project developed with the nRF Connect SDK (Zephyr RTOS). It is designed for the [b-parasite](https://github.com/rbaron/b-parasite) hardware, however due to the flexibility of Zephyr it should be easy to port it to other hardware containing a capacitive soil moisture sensor.
 
